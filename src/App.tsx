@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { fetchCategoryCounts, fetchSpecies, type Place, type SpeciesCount, type Taxon } from './api'
+import { PER_PAGE, fetchCategoryCounts, fetchSpecies, type Place, type SpeciesCount, type Taxon } from './api'
 import { CATEGORIES } from './categories'
 import { LocationPicker } from './components/LocationPicker'
 import { ShareAchievement } from './components/ShareAchievement'
 import { SpeciesCard } from './components/SpeciesCard'
 import { SpeciesDetail } from './components/SpeciesDetail'
-import { formatNumber } from './format'
+import { RARITIES, formatNumber, type Rarity } from './format'
 import { load, save } from './storage'
 
 const RADII = [5, 10, 25, 50, 100]
@@ -30,6 +30,12 @@ const normalize = (text: string) =>
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
 
+function rarityRange(rarity: Rarity): string {
+  if (rarity.max === Infinity) return `${rarity.min} registros ou mais`
+  if (rarity.min <= 1) return `até ${rarity.max} registros`
+  return `${rarity.min} a ${rarity.max} registros`
+}
+
 function Logo() {
   return <img className="logo" src="./icon.svg" alt="" width="36" height="36" />
 }
@@ -46,6 +52,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(selectedFromHash)
   const [reloadKey, setReloadKey] = useState(0)
   const [sharing, setSharing] = useState<Taxon | null>(null)
+  const [rarityId, setRarityId] = useState('all')
+  const [topCount, setTopCount] = useState(1)
 
   const request = useRef(0)
   const openedHere = useRef(false)
@@ -53,6 +61,18 @@ export default function App() {
 
   const category = CATEGORIES.find((c) => c.id === categoryId) ?? CATEGORIES[0]
   const seenSet = useMemo(() => new Set(seen), [seen])
+
+  // Com filtro de raridade as páginas são maiores, para atravessar rápido as espécies fora da faixa;
+  // as raras ficam no fim da lista, então são pedidas em ordem crescente.
+  const rarity = RARITIES.find((r) => r.id === rarityId) ?? null
+  const order = rarity?.id === 'rare' ? 'asc' : 'desc'
+  const perPage = rarity ? 200 : PER_PAGE
+
+  /** Posição da espécie no ranking regional (1 = mais registrada), qualquer que seja a ordem carregada. */
+  const numberAt = useCallback(
+    (index: number) => (order === 'asc' ? list.total - index : index + 1),
+    [order, list.total],
+  )
 
   useEffect(() => save('place', place), [place])
   useEffect(() => save('radius', radius), [radius])
@@ -79,25 +99,36 @@ export default function App() {
     const controller = new AbortController()
     const id = ++request.current
     setList(EMPTY_LIST)
-    fetchSpecies({ place, radiusKm: radius, category, page: 1 }, controller.signal)
+    fetchSpecies({ place, radiusKm: radius, category, page: 1, perPage, order }, controller.signal)
       .then((data) => {
         if (id !== request.current) return
         setList({ items: data.results, total: data.total, page: 1, status: 'done' })
+        if (order === 'desc') setTopCount(data.results[0]?.count ?? 1)
       })
       .catch((error) => {
         if (error.name !== 'AbortError' && id === request.current) setList({ ...EMPTY_LIST, status: 'error' })
       })
+    // na ordem crescente a lista não traz a espécie mais registrada, usada como escala do medidor da ficha
+    if (order === 'asc') {
+      fetchSpecies({ place, radiusKm: radius, category, page: 1, perPage: 1 }, controller.signal)
+        .then((data) => id === request.current && setTopCount(data.results[0]?.count ?? 1))
+        .catch(() => {})
+    }
     return () => controller.abort()
-  }, [place, radius, category, reloadKey])
+  }, [place, radius, category, perPage, order, reloadKey])
 
-  const hasMore = list.items.length < list.total
+  // A lista vem ordenada por registros: passada a faixa da raridade escolhida, não há mais o que buscar.
+  const lastCount = list.items[list.items.length - 1]?.count
+  const pastRarity =
+    !!rarity && lastCount != null && (order === 'asc' ? lastCount > rarity.max : lastCount < rarity.min)
+  const hasMore = list.items.length < list.total && !pastRarity
 
   const loadMore = useCallback(() => {
     if (!place || !hasMore || (list.status !== 'done' && list.status !== 'moreError')) return
     const id = request.current
     const page = list.page + 1
     setList((current) => ({ ...current, status: 'more' }))
-    fetchSpecies({ place, radiusKm: radius, category, page })
+    fetchSpecies({ place, radiusKm: radius, category, page, perPage, order })
       .then((data) => {
         if (id !== request.current) return
         setList((current) => {
@@ -111,7 +142,7 @@ export default function App() {
       .catch(() => {
         if (id === request.current) setList((current) => ({ ...current, status: 'moreError' }))
       })
-  }, [place, radius, category, hasMore, list.status, list.page])
+  }, [place, radius, category, perPage, order, hasMore, list.status, list.page])
 
   const filtering = query.trim().length > 0
 
@@ -127,13 +158,15 @@ export default function App() {
   }, [filtering, list.status, hasMore, loadMore])
 
   const visible = useMemo(() => {
-    const numbered = list.items.map((entry, index) => ({ entry, number: index + 1 }))
     const term = normalize(query.trim())
-    if (!term) return numbered
-    return numbered.filter(({ entry }) =>
-      normalize(`${entry.taxon.preferred_common_name ?? ''} ${entry.taxon.name}`).includes(term),
-    )
-  }, [list.items, query])
+    return list.items
+      .map((entry, index) => ({ entry, number: numberAt(index) }))
+      .filter(
+        ({ entry }) =>
+          (!rarity || (entry.count >= rarity.min && entry.count <= rarity.max)) &&
+          (!term || normalize(`${entry.taxon.preferred_common_name ?? ''} ${entry.taxon.name}`).includes(term)),
+      )
+  }, [list.items, query, rarity, numberAt])
 
   // Marcar abre o cartão de conquista; desmarcar apenas remove.
   function toggleSeen(taxon: Taxon) {
@@ -247,6 +280,17 @@ export default function App() {
                 ))}
               </select>
             </label>
+            <label className="radius">
+              <span>Raridade</span>
+              <select value={rarityId} onChange={(e) => setRarityId(e.target.value)}>
+                <option value="all">Todas</option>
+                {RARITIES.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <p className="summary-line" aria-live="polite">
@@ -256,7 +300,9 @@ export default function App() {
                 ? ''
                 : filtering
                   ? `${formatNumber(visible.length)} encontradas entre as ${formatNumber(list.items.length)} carregadas (de ${formatNumber(list.total)})`
-                  : `${formatNumber(list.total)} espécies · ${category.label} · mais registradas primeiro`}
+                  : rarity
+                    ? `${formatNumber(visible.length)}${hasMore ? '+' : ''} espécies · ${category.label} · ${rarity.label} (${rarityRange(rarity)} na região)`
+                    : `${formatNumber(list.total)} espécies · ${category.label} · mais registradas primeiro`}
           </p>
 
           {list.status === 'error' && (
@@ -268,9 +314,11 @@ export default function App() {
             </div>
           )}
 
-          {list.status === 'done' && list.items.length === 0 && (
+          {list.status === 'done' && visible.length === 0 && !hasMore && !filtering && (
             <p className="notice">
-              Nenhuma espécie registrada nesta categoria dentro de {radius} km. Experimente aumentar o raio.
+              {rarity && list.items.length > 0
+                ? `Nenhuma espécie na faixa "${rarity.label}" nesta categoria dentro de ${radius} km.`
+                : `Nenhuma espécie registrada nesta categoria dentro de ${radius} km. Experimente aumentar o raio.`}
             </p>
           )}
 
@@ -311,8 +359,8 @@ export default function App() {
         <SpeciesDetail
           id={selectedId}
           entry={list.items[selectedIndex]}
-          number={selectedIndex >= 0 ? selectedIndex + 1 : undefined}
-          maxCount={list.items[0]?.count ?? 1}
+          number={selectedIndex >= 0 ? numberAt(selectedIndex) : undefined}
+          maxCount={topCount}
           seen={seenSet.has(selectedId)}
           onToggleSeen={toggleSeen}
           onShare={setSharing}

@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Taxon } from '../api'
+import { fetchTaxon, type Photo, type Taxon } from '../api'
 import { categoryOf } from '../categories'
 import { displayName } from '../format'
-import { drawCard, loadImage, type CardFormat } from '../shareCard'
+import { CARD_SIZES, SITE_URL, drawCard, loadImage, type CardFormat } from '../shareCard'
 
 type Source = 'catalog' | 'own'
 
 /** Só reutilizamos fotos do catálogo com licença Creative Commons que permita obras derivadas. */
-function reusableCatalogPhoto(taxon: Taxon): string | null {
-  const photo = taxon.default_photo
-  const url = photo?.medium_url ?? photo?.square_url
-  if (!url || !photo?.license_code || photo.license_code.includes('nd')) return null
-  return url.replace(/\/(medium|square)\./, '/large.')
+function isReusable(photo: Photo | null | undefined): photo is Photo {
+  return !!(photo?.medium_url ?? photo?.square_url) && !!photo?.license_code && !photo.license_code.includes('nd')
+}
+
+const largeUrl = (photo: Photo) => (photo.medium_url ?? photo.square_url)!.replace(/\/(medium|square)\./, '/large.')
+
+const pickRandom = (photos: Photo[], except?: Photo | null): Photo | null => {
+  const pool = photos.length > 1 ? photos.filter((photo) => photo !== except) : photos
+  return pool[Math.floor(Math.random() * pool.length)] ?? null
 }
 
 const slug = (text: string) =>
@@ -31,8 +35,10 @@ interface Props {
 }
 
 export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
-  const catalogUrl = useMemo(() => reusableCatalogPhoto(taxon), [taxon])
-  const [source, setSource] = useState<Source>(catalogUrl ? 'catalog' : 'own')
+  /** Fotos do catálogo que podem ilustrar o cartão; null enquanto a lista é consultada. */
+  const [catalogPhotos, setCatalogPhotos] = useState<Photo[] | null>(null)
+  const [catalogPhoto, setCatalogPhoto] = useState<Photo | null>(null)
+  const [source, setSource] = useState<Source>('catalog')
   const [ownPhoto, setOwnPhoto] = useState<File | null>(null)
   const [format, setFormat] = useState<CardFormat>('feed')
   const [image, setImage] = useState<Blob | null>(null)
@@ -54,7 +60,30 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
     return () => document.removeEventListener('keydown', onKey, true)
   }, [onClose])
 
+  // Sorteia a foto do catálogo entre todas as reutilizáveis da espécie, não só a de capa.
   useEffect(() => {
+    const controller = new AbortController()
+    const use = (photos: Photo[]) => {
+      setCatalogPhotos(photos)
+      setCatalogPhoto(pickRandom(photos))
+    }
+    setCatalogPhotos(null)
+    fetchTaxon(taxon.id, controller.signal)
+      .then((detail) => {
+        const photos = (detail.taxon_photos ?? []).map((item) => item.photo).filter(isReusable)
+        use(photos.length ? photos : [detail.default_photo].filter(isReusable))
+      })
+      .catch((error) => {
+        if (error.name !== 'AbortError') use([taxon.default_photo].filter(isReusable))
+      })
+    return () => controller.abort()
+  }, [taxon])
+
+  const catalogUrl = catalogPhoto && largeUrl(catalogPhoto)
+  const catalogReady = catalogPhotos !== null
+
+  useEffect(() => {
+    if (!catalogReady) return
     let cancelled = false
     setImage(null)
     setWarning(null)
@@ -86,7 +115,7 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
         color: category.color,
         place,
         ordinal,
-        credit: usingCatalog && photo ? taxon.default_photo?.attribution : undefined,
+        credit: usingCatalog && photo ? catalogPhoto?.attribution : undefined,
         photo,
         logo,
       })
@@ -97,14 +126,14 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
     return () => {
       cancelled = true
     }
-  }, [source, ownPhoto, format, catalogUrl, taxon, name, category, place, ordinal])
+  }, [catalogReady, source, ownPhoto, format, catalogUrl, catalogPhoto, taxon, name, category, place, ordinal])
 
   const fileName = `bichodex-${slug(name) || taxon.id}.jpg`
   const file = useMemo(() => image && new File([image], fileName, { type: 'image/jpeg' }), [image, fileName])
   const downloadUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image])
   useEffect(() => () => void (downloadUrl && URL.revokeObjectURL(downloadUrl)), [downloadUrl])
 
-  const text = `Avistei ${name} (${taxon.name}) em ${place}! É a minha ${ordinal}ª espécie no #Bichodex 🐾`
+  const text = `Avistei ${name} (${taxon.name}) em ${place}! É a minha ${ordinal}ª espécie no #Bichodex 🐾\nDescubra as espécies perto de você: ${SITE_URL}`
   const canShareFile = !!file && !!navigator.canShare?.({ files: [file] })
 
   async function share() {
@@ -137,14 +166,24 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
             <b>{name}</b> é a sua {ordinal}ª espécie. Monte o cartão e conte para todo mundo.
           </p>
 
-          <canvas ref={canvas} className={`share-preview is-${format}`} aria-label={`Cartão de conquista: ${name}`} />
+          <canvas
+            ref={canvas}
+            className="share-preview"
+            width={CARD_SIZES.feed.width}
+            height={CARD_SIZES.feed.height}
+            aria-label={`Cartão de conquista: ${name}`}
+          />
 
           <div className="segmented" role="group" aria-label="Foto do cartão">
             <button
               className={source === 'catalog' ? 'is-active' : ''}
               onClick={() => setSource('catalog')}
-              disabled={!catalogUrl}
-              title={catalogUrl ? undefined : 'A foto do catálogo desta espécie não tem licença para reutilização'}
+              disabled={catalogReady && !catalogUrl}
+              title={
+                catalogReady && !catalogUrl
+                  ? 'As fotos do catálogo desta espécie não têm licença para reutilização'
+                  : undefined
+              }
             >
               Foto do catálogo
             </button>
@@ -155,6 +194,11 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
               {ownPhoto ? 'Minha foto' : '📷 Enviar minha foto'}
             </button>
           </div>
+          {source === 'catalog' && catalogPhotos && catalogPhotos.length > 1 && (
+            <button className="link-btn" onClick={() => setCatalogPhoto(pickRandom(catalogPhotos, catalogPhoto))}>
+              🔀 Sortear outra foto
+            </button>
+          )}
           {ownPhoto && source === 'own' && (
             <button className="link-btn" onClick={() => fileInput.current?.click()}>
               Trocar foto
@@ -184,9 +228,9 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
             </button>
           </div>
 
-          {!catalogUrl && !ownPhoto && (
+          {catalogReady && !catalogUrl && !ownPhoto && (
             <p className="fineprint">
-              A foto do catálogo desta espécie não pode ser reutilizada. Envie uma foto sua para ilustrar o cartão.
+              As fotos do catálogo desta espécie não podem ser reutilizadas. Envie uma foto sua para ilustrar o cartão.
             </p>
           )}
           {warning && (

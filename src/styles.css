@@ -428,11 +428,12 @@ select {
 
 .toolbar {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
 }
 
 .toolbar input {
-  flex: 1;
+  flex: 1 1 14rem;
 }
 
 .radius {
@@ -921,17 +922,14 @@ select {
 
 .share-preview {
   justify-self: center;
+  /* sem aspect-ratio fixo: a proporção vem do próprio canvas, que só muda quando o cartão é redesenhado */
   width: auto;
+  height: auto;
   max-width: 100%;
-  height: min(46dvh, 26rem);
-  aspect-ratio: 4 / 5;
+  max-height: min(46dvh, 26rem);
   border-radius: 14px;
   background: var(--brand);
   box-shadow: 0 8px 22px rgb(0 0 0 / 0.25);
-}
-
-.share-preview.is-stories {
-  aspect-ratio: 9 / 16;
 }
 
 .segmented {

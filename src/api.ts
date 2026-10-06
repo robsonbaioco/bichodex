@@ -57,12 +57,21 @@ function areaParams(place: Place, radiusKm: number): URLSearchParams {
 }
 
 export async function fetchSpecies(
-  opts: { place: Place; radiusKm: number; category: Category; page: number },
+  opts: {
+    place: Place
+    radiusKm: number
+    category: Category
+    page: number
+    perPage?: number
+    /** Ordem pela quantidade de registros; 'desc' (mais registradas primeiro) é o padrão. */
+    order?: 'asc' | 'desc'
+  },
   signal?: AbortSignal,
 ): Promise<{ total: number; results: SpeciesCount[] }> {
   const params = areaParams(opts.place, opts.radiusKm)
-  params.set('per_page', String(PER_PAGE))
+  params.set('per_page', String(opts.perPage ?? PER_PAGE))
   params.set('page', String(opts.page))
+  if (opts.order === 'asc') params.set('order', 'asc')
   if (opts.category.iconic) params.set('iconic_taxa', opts.category.iconic)
   if (opts.category.taxonId) params.set('taxon_id', String(opts.category.taxonId))
   const data = await getJson<{ total_results: number; results: SpeciesCount[] }>(

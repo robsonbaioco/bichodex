@@ -1,5 +1,8 @@
 // Desenha o cartão de conquista ("espécie avistada") em um canvas, pronto para virar imagem.
 
+/** Endereço público do Bichodex, impresso no cartão e incluído no texto de compartilhamento. */
+export const SITE_URL = 'https://robsonbaioco.github.io/bichodex/'
+
 export type CardFormat = 'feed' | 'stories'
 
 export const CARD_SIZES: Record<CardFormat, { width: number; height: number }> = {
@@ -94,6 +97,11 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   ctx.textBaseline = 'middle'
   ctx.font = `800 54px ${FONT}`
   ctx.fillText('Bichodex', MARGIN + 104, 94)
+  ctx.font = `600 30px ${FONT}`
+  ctx.fillStyle = 'rgb(255 255 255 / 0.85)'
+  ctx.textAlign = 'right'
+  ctx.fillText(SITE_URL.replace(/^https:\/\/|\/$/g, ''), W - MARGIN, 96)
+  ctx.textAlign = 'left'
 
   // Foto
   const photoTop = 170
