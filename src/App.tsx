@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   PER_PAGE,
   fetchCategoryCounts,
@@ -9,16 +9,40 @@ import {
   type Taxon,
 } from './api'
 import { CATEGORIES, type Category } from './categories'
+import { Deck } from './components/Deck'
+import { Dex } from './components/Dex'
 import { Highlights } from './components/Highlights'
 import { LocationPicker } from './components/LocationPicker'
+import { Missions } from './components/Missions'
 import { ShareAchievement } from './components/ShareAchievement'
 import { SpeciesCard } from './components/SpeciesCard'
 import { SpeciesDetail } from './components/SpeciesDetail'
 import { ThemePicker } from './components/ThemePicker'
-import { RARITIES, formatNumber, type Rarity, type SeenWhere } from './format'
+import { Trail, type TrailState } from './components/Trail'
+import { RARITIES, displayName, formatNumber, type Rarity, type SeenWhere } from './format'
+import { dailyCategory, loadProgress, withOpened, withSighting, withoutSighting } from './missions'
 import type { SpecialDay } from './specialDays'
 import { load, save } from './storage'
-import { applyTheme, loadTheme, type ThemeId } from './themes'
+import { applyTheme, loadIntensity, loadTheme, type Intensity, type ThemeId } from './themes'
+
+// o mapa traz uma biblioteca grande: só é baixado quando a aba é aberta
+const MapView = lazy(() => import('./components/MapView'))
+
+type View = 'explorar' | 'mapa' | 'dex' | 'missoes'
+
+const TABS: { id: View; label: string; emoji: string }[] = [
+  { id: 'explorar', label: 'Explorar', emoji: '🔎' },
+  { id: 'mapa', label: 'Mapa', emoji: '🗺️' },
+  { id: 'dex', label: 'Minha dex', emoji: '📖' },
+  { id: 'missoes', label: 'Missões', emoji: '🎯' },
+]
+
+/** Aba indicada pelo endereço; nulo quando o endereço é o de uma ficha, que abre por cima da aba atual. */
+function viewFromHash(): View | null {
+  if (location.hash.length <= 1) return 'explorar'
+  const match = location.hash.match(/^#\/(explorar|mapa|dex|missoes)$/)
+  return match ? (match[1] as View) : null
+}
 
 const RADII = [5, 10, 25, 50, 100]
 
@@ -76,6 +100,12 @@ export default function App() {
   const [topCount, setTopCount] = useState(1)
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
   const [pickingTheme, setPickingTheme] = useState(false)
+  const [intensity, setIntensity] = useState<Intensity>(loadIntensity)
+  const [view, setView] = useState<View>(() => viewFromHash() ?? 'explorar')
+  const [progress, setProgress] = useState(loadProgress)
+  const [deckOpen, setDeckOpen] = useState(false)
+  const [trail, setTrail] = useState<TrailState | null>(() => load('trail', null))
+  const [trailOpen, setTrailOpen] = useState(false)
 
   const request = useRef(0)
   const openedHere = useRef(false)
@@ -100,10 +130,22 @@ export default function App() {
   useEffect(() => save('radius', radius), [radius])
   useEffect(() => save('seen', seen), [seen])
   useEffect(() => save('zoo', zooIds), [zooIds])
-  useEffect(() => applyTheme(theme), [theme])
+  useEffect(() => applyTheme(theme, intensity), [theme, intensity])
+  useEffect(() => save('progress', progress), [progress])
+  useEffect(() => save('trail', trail), [trail])
+  useEffect(() => {
+    if (selectedId != null) setProgress((current) => withOpened(current, selectedId))
+  }, [selectedId])
 
   useEffect(() => {
-    const onHashChange = () => setSelectedId(selectedFromHash())
+    const onHashChange = () => {
+      setSelectedId(selectedFromHash())
+      const next = viewFromHash()
+      if (next) {
+        setView(next)
+        window.scrollTo({ top: 0 })
+      }
+    }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
@@ -214,7 +256,7 @@ export default function App() {
     })
     observer.observe(node)
     return () => observer.disconnect()
-  }, [filtering, list.status, hasMore, loadMore])
+  }, [filtering, list.status, hasMore, loadMore, view])
 
   const visible = useMemo(() => {
     const term = normalize(query.trim())
@@ -234,16 +276,37 @@ export default function App() {
     })
   }
 
-  // Marcar abre o cartão de conquista; desmarcar apenas remove.
-  function toggleSeen(taxon: Taxon, where: SeenWhere = 'wild') {
+  // Marcar abre o cartão de conquista (a não ser no baralho e na trilha, que marcam várias em sequência);
+  // desmarcar apenas remove.
+  function toggleSeen(taxon: Taxon, where: SeenWhere = 'wild', silent = false) {
     if (seenSet.has(taxon.id)) {
       setSeen((current) => current.filter((id) => id !== taxon.id))
       setWhere(taxon.id, 'wild')
+      setProgress((current) => withoutSighting(current, taxon.id))
     } else {
       setSeen((current) => [...current, taxon.id])
       setWhere(taxon.id, where)
-      if (place) setSharing(taxon)
+      setProgress((current) => withSighting(current, taxon))
+      if (place && !silent) setSharing(taxon)
     }
+  }
+
+  function startTrail() {
+    if (!place) return
+    if (!trail) setTrail({ start: Date.now(), place: place.label, found: [] })
+    setTrailOpen(true)
+  }
+
+  // Na trilha, tocar numa espécie a inclui (ou tira) do resumo; se ainda não estava na dex, entra também.
+  function toggleTrail(taxon: Taxon) {
+    setTrail((current) => {
+      if (!current) return current
+      const found = current.found.some((f) => f.id === taxon.id)
+        ? current.found.filter((f) => f.id !== taxon.id)
+        : [...current.found, { id: taxon.id, name: displayName(taxon) }]
+      return { ...current, found }
+    })
+    if (!seenSet.has(taxon.id)) toggleSeen(taxon, 'wild', true)
   }
 
   function openSpecies(id: number) {
@@ -299,7 +362,18 @@ export default function App() {
   )
 
   const themePicker = pickingTheme && (
-    <ThemePicker current={theme} onPick={setTheme} onClose={() => setPickingTheme(false)} />
+    <ThemePicker
+      current={theme}
+      intensity={intensity}
+      onPick={setTheme}
+      onIntensity={setIntensity}
+      onClose={() => setPickingTheme(false)}
+    />
+  )
+
+  const unseenRegional = useMemo(
+    () => list.items.filter((entry) => !seenSet.has(entry.taxon.id)),
+    [list.items, seenSet],
   )
 
   if (!place) {
@@ -351,6 +425,7 @@ export default function App() {
         </div>
       </header>
 
+      {view === 'explorar' && (
       <div className="layout">
         <nav className="categories" aria-label="Categorias">
           {special && (
@@ -521,6 +596,79 @@ export default function App() {
           </footer>
         </main>
       </div>
+      )}
+
+      {view !== 'explorar' && (
+        <main className="content page">
+          {view === 'mapa' && (
+            <Suspense fallback={<p className="notice">Carregando o mapa…</p>}>
+              <MapView place={place} radius={radius} onOpen={openSpecies} />
+            </Suspense>
+          )}
+          {view === 'dex' && (
+            <Dex
+              seen={seen}
+              counts={counts}
+              regional={list.items}
+              onOpen={() => (openedHere.current = true)}
+              onToggleSeen={toggleSeen}
+              onStartDeck={() => setDeckOpen(true)}
+            />
+          )}
+          {view === 'missoes' && (
+            <Missions
+              progress={progress}
+              category={dailyCategory()}
+              seenCount={seen.length}
+              trailActive={!!trail}
+              ready={list.items.length > 0}
+              onStartDeck={() => setDeckOpen(true)}
+              onStartTrail={startTrail}
+            />
+          )}
+        </main>
+      )}
+
+      {trail && !trailOpen && (
+        <button className="trail-chip" onClick={() => setTrailOpen(true)}>
+          🥾 Trilha em andamento · {trail.found.length}
+        </button>
+      )}
+
+      <nav className="tabs" aria-label="Seções">
+        {TABS.map((tab) => (
+          <a
+            key={tab.id}
+            href={`#/${tab.id}`}
+            className={view === tab.id ? 'is-active' : ''}
+            aria-current={view === tab.id ? 'page' : undefined}
+          >
+            <span aria-hidden="true">{tab.emoji}</span>
+            <span>{tab.label}</span>
+          </a>
+        ))}
+      </nav>
+
+      {deckOpen && (
+        <Deck
+          items={unseenRegional}
+          onSeen={(taxon) => toggleSeen(taxon, 'wild', true)}
+          onClose={() => setDeckOpen(false)}
+        />
+      )}
+
+      {trail && trailOpen && (
+        <Trail
+          trail={trail}
+          items={list.items}
+          onToggle={toggleTrail}
+          onMinimize={() => setTrailOpen(false)}
+          onFinish={() => {
+            setTrail(null)
+            setTrailOpen(false)
+          }}
+        />
+      )}
 
       {detail}
 

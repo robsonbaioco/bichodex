@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { InstallPrompt } from './components/InstallPrompt'
-import { applyTheme, loadTheme } from './themes'
+import { applyTheme, loadIntensity, loadTheme } from './themes'
 import '@fontsource/permanent-marker/latin-400.css'
 import '@fontsource/cinzel/latin-700.css'
 import '@fontsource/press-start-2p/latin-400.css'
@@ -16,9 +16,10 @@ import '@fontsource/bebas-neue/latin-400.css'
 import './styles.css'
 import './themes.css'
 import './themes-ousados.css'
+import './views.css'
 
 // antes da primeira pintura, para o app não piscar no tema original
-applyTheme(loadTheme())
+applyTheme(loadTheme(), loadIntensity())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

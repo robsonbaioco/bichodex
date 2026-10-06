@@ -21,6 +21,18 @@ export const CONSERVATION: Record<string, string> = {
   DD: 'Dados insuficientes',
 }
 
+/** Versão curta, para caber nos blocos de atributos da ficha. */
+export const RISK_SHORT: Record<string, string> = {
+  LC: 'Baixo',
+  NT: 'Quase ameaçada',
+  VU: 'Vulnerável',
+  EN: 'Em perigo',
+  CR: 'Crítico',
+  EW: 'Extinta na natureza',
+  EX: 'Extinta',
+  DD: 'Sem dados',
+}
+
 /** Rótulo do grau de ameaça, ou null quando a espécie não está em risco (ou o status não é da IUCN). */
 export function riskLabel(taxon: Taxon): string | null {
   const status = taxon.conservation_status?.status?.toUpperCase()

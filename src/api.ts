@@ -162,3 +162,38 @@ export async function searchWorldSpecies(query: string, signal?: AbortSignal): P
   const data = await getJson<{ results: Taxon[] }>(`${INAT}/taxa?${params}`, signal)
   return data.results
 }
+
+/** Dados básicos de várias espécies de uma vez (a API aceita até 30 por chamada). */
+export async function fetchTaxaByIds(ids: number[], signal?: AbortSignal): Promise<Taxon[]> {
+  const chunks: number[][] = []
+  for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30))
+  const pages = await Promise.all(
+    chunks.map((chunk) => getJson<{ results: Taxon[] }>(`${INAT}/taxa/${chunk.join(',')}?locale=pt-BR`, signal)),
+  )
+  return pages.flatMap((page) => page.results)
+}
+
+/** Um registro de observação com posição, para o mapa. */
+export interface Sighting {
+  id: number
+  lat: number
+  lng: number
+  taxon: Taxon
+  observedOn?: string
+}
+
+/** Registros mais recentes da área. Espécies ameaçadas vêm com a posição embaralhada pelo iNaturalist. */
+export async function fetchRecentSightings(place: Place, radiusKm: number, signal?: AbortSignal): Promise<Sighting[]> {
+  const params = areaParams(place, radiusKm)
+  params.set('per_page', '200')
+  params.set('order_by', 'observed_on')
+  params.set('photos', 'true')
+  const data = await getJson<{
+    results: { id: number; location?: string | null; taxon?: Taxon | null; observed_on?: string }[]
+  }>(`${INAT}/observations?${params}`, signal)
+  return data.results.flatMap((r) => {
+    const [lat, lng] = (r.location ?? '').split(',').map(Number)
+    if (!r.taxon || !Number.isFinite(lat) || !Number.isFinite(lng)) return []
+    return [{ id: r.id, lat, lng, taxon: r.taxon, observedOn: r.observed_on }]
+  })
+}

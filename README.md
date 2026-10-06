@@ -10,7 +10,9 @@ Catálogo dos seres vivos ao seu redor: informe sua localização e veja os anim
 - Ficha de cada espécie, com fotos, classificação e quantidade de registros na região.
 - Marcação de espécies avistadas (na natureza ou no zoológico) e cartão de conquista para compartilhar.
 - Bicho do dia e datas comemorativas com o animal associado.
-- Dez temas visuais: Original, Grafite, Élfico, Jogo, Cordel, Naturalista, Terminal, Noturno, Colecionável e Parque.
+- Abas de navegação: Explorar, Mapa dos registros recentes, Minha dex (álbum com progresso por categoria) e Missões (missões diárias, sequência e medalhas).
+- Baralho de descobertas e modo trilha para marcar várias espécies em sequência.
+- Dez temas visuais, cada um em intensidade suave ou forte: Original, Grafite, Élfico, Jogo, Cordel, Naturalista, Terminal, Noturno, Colecionável e Parque.
 
 ## Como funciona
 

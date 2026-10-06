@@ -1,13 +1,15 @@
 import type { CSSProperties } from 'react'
-import { THEMES, type ThemeId } from '../themes'
+import { THEMES, type Intensity, type ThemeId } from '../themes'
 
 interface Props {
   current: ThemeId
+  intensity: Intensity
   onPick: (id: ThemeId) => void
+  onIntensity: (intensity: Intensity) => void
   onClose: () => void
 }
 
-export function ThemePicker({ current, onPick, onClose }: Props) {
+export function ThemePicker({ current, intensity, onPick, onIntensity, onClose }: Props) {
   return (
     <div className="overlay" onClick={onClose}>
       <section
@@ -23,6 +25,21 @@ export function ThemePicker({ current, onPick, onClose }: Props) {
             ✕
           </button>
         </header>
+        <div className="sheet-pad theme-intensity">
+          <div className="segmented" role="group" aria-label="Intensidade do tema">
+            <button className={intensity === 'suave' ? 'is-active' : ''} onClick={() => onIntensity('suave')}>
+              Suave
+            </button>
+            <button className={intensity === 'forte' ? 'is-active' : ''} onClick={() => onIntensity('forte')}>
+              Forte
+            </button>
+          </div>
+          <p className="fineprint">
+            {intensity === 'suave'
+              ? 'Só as cores e as fontes do tema, sem texturas, rotações nem brilhos.'
+              : 'O tema completo, com texturas, rotações e brilhos.'}
+          </p>
+        </div>
         <ul className="sheet-pad theme-list">
           {THEMES.map((theme) => (
             <li key={theme.id}>

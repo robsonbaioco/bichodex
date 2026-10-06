@@ -145,6 +145,13 @@ export const THEMES: Theme[] = [
   },
 ]
 
+/** Suave troca só cores e fontes; forte liga também texturas, rotações e brilhos do tema. */
+export type Intensity = 'suave' | 'forte'
+
+export function loadIntensity(): Intensity {
+  return load<string>('intensity', 'forte') === 'suave' ? 'suave' : 'forte'
+}
+
 export function themeById(id: string | undefined): Theme {
   return THEMES.find((theme) => theme.id === id) ?? THEMES[0]
 }
@@ -158,9 +165,11 @@ export function currentTheme(): Theme {
   return themeById(document.documentElement.dataset.theme)
 }
 
-export function applyTheme(id: ThemeId): void {
+export function applyTheme(id: ThemeId, intensity: Intensity = 'forte'): void {
   const theme = themeById(id)
   document.documentElement.dataset.theme = theme.id
+  document.documentElement.dataset.intensity = intensity
+  save('intensity', intensity)
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.chrome)
   save('theme', theme.id)
 }

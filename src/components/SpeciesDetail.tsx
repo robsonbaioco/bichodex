@@ -3,6 +3,7 @@ import { fetchTaxon, type Photo, type SpeciesCount, type Taxon, type TaxonDetail
 import { categoryOf } from '../categories'
 import {
   CONSERVATION,
+  RISK_SHORT,
   displayName,
   entryNumber,
   formatNumber,
@@ -106,6 +107,7 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onTogg
                 </span>
               )}
             </div>
+            <div className="detail-sheet">
             {photos.length > 1 && (
               <div className="thumbs">
                 {photos.map((p, i) => (
@@ -141,6 +143,21 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onTogg
                 )}
               </div>
 
+              <dl className="attrs">
+                <div>
+                  <dt>Raridade</dt>
+                  <dd>{entry ? frequencyLabel(entry.count) : 'Fora da região'}</dd>
+                </div>
+                <div>
+                  <dt>Risco</dt>
+                  <dd>{status ? (RISK_SHORT[status] ?? status) : 'Sem avaliação'}</dd>
+                </div>
+                <div>
+                  <dt>No mundo</dt>
+                  <dd>{taxon.observations_count != null ? formatNumber(taxon.observations_count) : '…'}</dd>
+                </div>
+              </dl>
+
               <dl className="stats">
                 {entry && (
                   <div className="stat stat-wide">
@@ -157,14 +174,8 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onTogg
                     </dd>
                   </div>
                 )}
-                {taxon.observations_count != null && (
-                  <div className="stat">
-                    <dt>No mundo</dt>
-                    <dd>{formatNumber(taxon.observations_count)} registros</dd>
-                  </div>
-                )}
                 {status && (
-                  <div className="stat">
+                  <div className="stat stat-wide">
                     <dt>Conservação</dt>
                     <dd>
                       {CONSERVATION[status] ?? detail?.conservation_status?.status_name ?? status}
@@ -212,6 +223,7 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onTogg
                   Wikipédia ↗
                 </a>
               </div>
+            </div>
             </div>
           </>
         )}
