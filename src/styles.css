@@ -1233,3 +1233,30 @@ select {
   font-size: 0.9rem;
   margin: 0.2rem 0 0.9rem;
 }
+
+/* ---------- Raio de busca ---------- */
+
+.toolbar .radius-slider input {
+  flex: none;
+  width: 9rem;
+  padding: 0;
+  accent-color: var(--brand);
+}
+
+.radius-slider output {
+  min-width: 3.6rem;
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 480px) {
+  .radius-slider {
+    flex: 1 1 100%;
+  }
+
+  .toolbar .radius-slider input {
+    flex: 1;
+    width: auto;
+  }
+}

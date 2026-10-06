@@ -44,7 +44,9 @@ function viewFromHash(): View | null {
   return match ? (match[1] as View) : null
 }
 
-const RADII = [5, 10, 25, 50, 100]
+/** Limites do raio de busca, em km. */
+const MIN_RADIUS = 1
+const MAX_RADIUS = 100
 
 interface ListState {
   items: SpeciesCount[]
@@ -79,6 +81,8 @@ function Logo() {
 export default function App() {
   const [place, setPlace] = useState<Place | null>(() => load('place', null))
   const [radius, setRadius] = useState<number>(() => load('radius', 10))
+  /** Valor do controle de raio enquanto é arrastado; só vira `radius` (e refaz as buscas) após uma pausa. */
+  const [radiusDraft, setRadiusDraft] = useState(radius)
   const [seen, setSeen] = useState<number[]>(() => load('seen', []))
   /** Entre as avistadas, as que foram vistas no zoológico (as demais, na natureza). */
   const [zooIds, setZooIds] = useState<number[]>(() => load('zoo', []))
@@ -128,6 +132,10 @@ export default function App() {
 
   useEffect(() => save('place', place), [place])
   useEffect(() => save('radius', radius), [radius])
+  useEffect(() => {
+    const timer = setTimeout(() => setRadius(radiusDraft), 400)
+    return () => clearTimeout(timer)
+  }, [radiusDraft])
   useEffect(() => save('seen', seen), [seen])
   useEffect(() => save('zoo', zooIds), [zooIds])
   useEffect(() => applyTheme(theme, intensity), [theme, intensity])
@@ -433,15 +441,18 @@ export default function App() {
             </select>
           </label>
         )}
-        <label className="radius">
+        <label className="radius radius-slider">
           <span>Raio</span>
-          <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
-            {RADII.map((km) => (
-              <option key={km} value={km}>
-                {km} km
-              </option>
-            ))}
-          </select>
+          <input
+            type="range"
+            min={MIN_RADIUS}
+            max={MAX_RADIUS}
+            step={1}
+            value={radiusDraft}
+            onChange={(e) => setRadiusDraft(Number(e.target.value))}
+            aria-valuetext={`${radiusDraft} km`}
+          />
+          <output>{radiusDraft} km</output>
         </label>
         <label className="radius">
           <span>Raridade</span>
