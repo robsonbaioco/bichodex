@@ -183,8 +183,15 @@ export interface Sighting {
 }
 
 /** Registros mais recentes da área. Espécies ameaçadas vêm com a posição embaralhada pelo iNaturalist. */
-export async function fetchRecentSightings(place: Place, radiusKm: number, signal?: AbortSignal): Promise<Sighting[]> {
-  const params = areaParams(place, radiusKm)
+export async function fetchRecentSightings(
+  place: Place,
+  radiusKm: number,
+  filter: { category: Category; threatened: boolean },
+  signal?: AbortSignal,
+): Promise<Sighting[]> {
+  const params = areaParams(place, radiusKm, filter.threatened)
+  if (filter.category.iconic) params.set('iconic_taxa', filter.category.iconic)
+  if (filter.category.taxonId) params.set('taxon_id', String(filter.category.taxonId))
   params.set('per_page', '200')
   params.set('order_by', 'observed_on')
   params.set('photos', 'true')
@@ -196,4 +203,19 @@ export async function fetchRecentSightings(place: Place, radiusKm: number, signa
     if (!r.taxon || !Number.isFinite(lat) || !Number.isFinite(lng)) return []
     return [{ id: r.id, lat, lng, taxon: r.taxon, observedOn: r.observed_on }]
   })
+}
+
+/** Quantos registros cada uma das espécies dadas tem na área (a base do filtro de raridade). */
+export async function fetchCountsForTaxa(
+  place: Place,
+  radiusKm: number,
+  ids: number[],
+  signal?: AbortSignal,
+): Promise<Map<number, number>> {
+  if (!ids.length) return new Map()
+  const params = areaParams(place, radiusKm)
+  params.set('taxon_id', ids.join(','))
+  params.set('per_page', '500')
+  const data = await getJson<{ results: SpeciesCount[] }>(`${INAT}/observations/species_counts?${params}`, signal)
+  return new Map(data.results.map((r) => [r.taxon.id, r.count]))
 }

@@ -244,8 +244,8 @@ export default function App() {
   }, [query])
 
   useEffect(() => {
-    if (searchAll && hasMore && list.status === 'done') loadMore()
-  }, [searchAll, hasMore, list.status, loadMore])
+    if (view === 'explorar' && searchAll && hasMore && list.status === 'done') loadMore()
+  }, [view, searchAll, hasMore, list.status, loadMore])
 
   // Rolagem infinita; durante a busca por nome quem carrega é o efeito acima.
   useEffect(() => {
@@ -404,6 +404,63 @@ export default function App() {
     )
   }
 
+  // Os filtros são os mesmos em Explorar e no Mapa; lá as categorias viram uma lista, já que não há a barra lateral.
+  const filterBar = (withCategory: boolean) => (
+      <div className="toolbar">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filtrar por nome…"
+          aria-label="Filtrar por nome"
+        />
+        {withCategory && (
+          <label className="radius">
+            <span>Categoria</span>
+            <select
+              value={special ? 'special' : categoryId}
+              onChange={(e) => {
+                setCategoryId(e.target.value)
+                setSpecial(null)
+              }}
+            >
+              {special && <option value="special">{special.label}</option>}
+              {CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className="radius">
+          <span>Raio</span>
+          <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+            {RADII.map((km) => (
+              <option key={km} value={km}>
+                {km} km
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="radius">
+          <span>Raridade</span>
+          <select value={rarityId} onChange={(e) => setRarityId(e.target.value)}>
+            <option value="all">Todas</option>
+            {RARITIES.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="toggle" title="Espécies classificadas de quase ameaçadas a criticamente em perigo">
+          <input type="checkbox" checked={threatened} onChange={(e) => setThreatened(e.target.checked)} />
+          <span>⚠ Em risco de extinção</span>
+        </label>
+      </div>
+  )
+
   return (
     <div className="app">
       <header className="topbar">
@@ -476,40 +533,7 @@ export default function App() {
             />
           )}
 
-          <div className="toolbar">
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filtrar por nome…"
-              aria-label="Filtrar por nome"
-            />
-            <label className="radius">
-              <span>Raio</span>
-              <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
-                {RADII.map((km) => (
-                  <option key={km} value={km}>
-                    {km} km
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="radius">
-              <span>Raridade</span>
-              <select value={rarityId} onChange={(e) => setRarityId(e.target.value)}>
-                <option value="all">Todas</option>
-                {RARITIES.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="toggle" title="Espécies classificadas de quase ameaçadas a criticamente em perigo">
-              <input type="checkbox" checked={threatened} onChange={(e) => setThreatened(e.target.checked)} />
-              <span>⚠ Em risco de extinção</span>
-            </label>
-          </div>
+          {filterBar(false)}
 
           <p className="summary-line" aria-live="polite">
             {list.status === 'loading'
@@ -602,7 +626,16 @@ export default function App() {
         <main className="content page">
           {view === 'mapa' && (
             <Suspense fallback={<p className="notice">Carregando o mapa…</p>}>
-              <MapView place={place} radius={radius} onOpen={openSpecies} />
+              <MapView
+                place={place}
+                radius={radius}
+                category={category}
+                threatened={threatened}
+                rarity={rarity}
+                query={query}
+                filters={filterBar(true)}
+                onOpen={openSpecies}
+              />
             </Suspense>
           )}
           {view === 'dex' && (
