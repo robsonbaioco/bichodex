@@ -1,5 +1,7 @@
 // Desenha o cartão de conquista ("espécie avistada") em um canvas, pronto para virar imagem.
 
+import type { Theme } from './themes'
+
 /** Endereço público do Bichodex, impresso no cartão e incluído no texto de compartilhamento. */
 export const SITE_URL = 'https://robsonbaioco.github.io/bichodex/'
 
@@ -25,11 +27,12 @@ export interface CardData {
   credit?: string
   photo: HTMLImageElement | null
   logo: HTMLImageElement | null
+  /** Tema em uso, de onde vêm as cores e a fonte dos títulos. */
+  theme: Theme
 }
 
 const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
 const MARGIN = 60
-const YELLOW = '#f5c73d'
 
 /** Carrega uma imagem de forma que possa ser exportada do canvas (exige CORS para URLs remotas). */
 export async function loadImage(source: string | Blob): Promise<HTMLImageElement> {
@@ -81,11 +84,13 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   canvas.height = H
   const ctx = canvas.getContext('2d')!
   const inner = W - MARGIN * 2
+  const { card, displayFont, displayWeight } = data.theme
+  const soft = (alpha: number) => `color-mix(in srgb, ${card.ink} ${alpha * 100}%, transparent)`
 
   // Fundo
-  ctx.fillStyle = '#0f7a4d'
+  ctx.fillStyle = card.bg
   ctx.fillRect(0, 0, W, H)
-  ctx.fillStyle = '#0b5e3b'
+  ctx.fillStyle = card.deep
   ctx.beginPath()
   ctx.moveTo(0, H * 0.72)
   ctx.lineTo(W, H * 0.5)
@@ -95,12 +100,12 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
 
   // Cabeçalho
   if (data.logo) ctx.drawImage(data.logo, MARGIN, 50, 84, 84)
-  ctx.fillStyle = '#fff'
+  ctx.fillStyle = card.ink
   ctx.textBaseline = 'middle'
-  ctx.font = `800 54px ${FONT}`
+  ctx.font = `${displayWeight} 54px ${displayFont}`
   ctx.fillText('Bichodex', MARGIN + 104, 94)
   ctx.font = `600 30px ${FONT}`
-  ctx.fillStyle = 'rgb(255 255 255 / 0.85)'
+  ctx.fillStyle = soft(0.85)
   ctx.textAlign = 'right'
   ctx.fillText(SITE_URL.replace(/^https:\/\/|\/$/g, ''), W - MARGIN, 96)
   ctx.textAlign = 'left'
@@ -129,7 +134,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   }
   ctx.restore()
   ctx.lineWidth = 10
-  ctx.strokeStyle = '#fff'
+  ctx.strokeStyle = card.ink
   ctx.beginPath()
   ctx.roundRect(MARGIN, photoTop, inner, photoHeight, 48)
   ctx.stroke()
@@ -139,18 +144,18 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   const seal = `✓  ${data.seal}`
   ctx.font = `800 40px ${FONT}`
   const sealWidth = ctx.measureText(seal).width + 72
-  ctx.fillStyle = YELLOW
+  ctx.fillStyle = card.accent
   ctx.beginPath()
   ctx.roundRect(MARGIN + 36, photoBottom - 44, sealWidth, 88, 44)
   ctx.fill()
-  ctx.fillStyle = '#2b2100'
+  ctx.fillStyle = card.onAccent
   ctx.fillText(seal, MARGIN + 72, photoBottom + 2)
 
   // Nome: até duas linhas, reduzindo a fonte se preciso
   let size = 84
   let lines: string[]
   do {
-    ctx.font = `800 ${size}px ${FONT}`
+    ctx.font = `${displayWeight} ${size}px ${displayFont}`
     lines = wrap(ctx, data.name, inner)
     size -= 6
   } while (lines.length > 2 && size >= 46)
@@ -158,7 +163,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   lines = lines.slice(0, 2).map((line) => ellipsize(ctx, line, inner))
 
   ctx.textBaseline = 'alphabetic'
-  ctx.fillStyle = '#fff'
+  ctx.fillStyle = card.ink
   let y = photoBottom + 80
   for (const line of lines) {
     y += size * 1.08
@@ -166,7 +171,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   }
 
   ctx.font = `italic 44px ${FONT}`
-  ctx.fillStyle = 'rgb(255 255 255 / 0.85)'
+  ctx.fillStyle = soft(0.85)
   y += 64
   ctx.fillText(ellipsize(ctx, data.scientificName, inner), MARGIN, y)
 
@@ -176,12 +181,12 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
 
   // Rodapé
   ctx.font = `800 44px ${FONT}`
-  ctx.fillStyle = YELLOW
+  ctx.fillStyle = card.accent
   ctx.fillText(ellipsize(ctx, `Minha ${data.ordinal}ª espécie avistada no Bichodex`, inner), MARGIN, H - 104)
 
   if (data.credit) {
     ctx.font = `24px ${FONT}`
-    ctx.fillStyle = 'rgb(255 255 255 / 0.7)'
+    ctx.fillStyle = soft(0.7)
     ctx.fillText(ellipsize(ctx, `Foto: ${data.credit}`, inner), MARGIN, H - 44)
   }
 }

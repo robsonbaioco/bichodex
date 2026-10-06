@@ -14,9 +14,11 @@ import { LocationPicker } from './components/LocationPicker'
 import { ShareAchievement } from './components/ShareAchievement'
 import { SpeciesCard } from './components/SpeciesCard'
 import { SpeciesDetail } from './components/SpeciesDetail'
+import { ThemePicker } from './components/ThemePicker'
 import { RARITIES, formatNumber, type Rarity, type SeenWhere } from './format'
 import type { SpecialDay } from './specialDays'
 import { load, save } from './storage'
+import { applyTheme, loadTheme, type ThemeId } from './themes'
 
 const RADII = [5, 10, 25, 50, 100]
 
@@ -72,6 +74,8 @@ export default function App() {
   /** Páginas grandes, ligadas na primeira busca por nome, que percorre o catálogo inteiro da área. */
   const [bulk, setBulk] = useState(false)
   const [topCount, setTopCount] = useState(1)
+  const [theme, setTheme] = useState<ThemeId>(loadTheme)
+  const [pickingTheme, setPickingTheme] = useState(false)
 
   const request = useRef(0)
   const openedHere = useRef(false)
@@ -96,6 +100,7 @@ export default function App() {
   useEffect(() => save('radius', radius), [radius])
   useEffect(() => save('seen', seen), [seen])
   useEffect(() => save('zoo', zooIds), [zooIds])
+  useEffect(() => applyTheme(theme), [theme])
 
   useEffect(() => {
     const onHashChange = () => setSelectedId(selectedFromHash())
@@ -247,7 +252,7 @@ export default function App() {
   }
 
   function exploreGroup(day: SpecialDay) {
-    setSpecial({ id: 'special', label: day.group, emoji: day.emoji, color: '#0f7a4d', taxonId: day.taxonId })
+    setSpecial({ id: 'special', label: day.group, emoji: day.emoji, color: 'var(--brand)', taxonId: day.taxonId })
     setQuery('')
   }
 
@@ -293,6 +298,10 @@ export default function App() {
     />
   )
 
+  const themePicker = pickingTheme && (
+    <ThemePicker current={theme} onPick={setTheme} onClose={() => setPickingTheme(false)} />
+  )
+
   if (!place) {
     return (
       <>
@@ -310,9 +319,13 @@ export default function App() {
             <p className="fineprint">
               Sua localização é arredondada (~1 km) e usada apenas para consultar as espécies da área.
             </p>
+            <button className="link-btn theme-link" onClick={() => setPickingTheme(true)}>
+              🎨 Mudar o tema
+            </button>
           </div>
         </main>
         {detail}
+        {themePicker}
       </>
     )
   }
@@ -332,6 +345,9 @@ export default function App() {
           <span className="seen-counter" title="Espécies que você marcou como avistadas">
             ✓ {formatNumber(seen.length)}
           </span>
+          <button className="theme-btn" onClick={() => setPickingTheme(true)} aria-label="Escolher tema" title="Tema">
+            <span aria-hidden="true">🎨</span>
+          </button>
         </div>
       </header>
 
@@ -518,6 +534,8 @@ export default function App() {
           onClose={closeSharing}
         />
       )}
+
+      {themePicker}
 
       {changingPlace && (
         <div className="overlay" onClick={() => setChangingPlace(false)}>

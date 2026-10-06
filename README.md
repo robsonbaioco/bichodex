@@ -2,7 +2,15 @@
 
 Catálogo dos seres vivos ao seu redor: informe sua localização e veja os animais, plantas, fungos e outros organismos já registrados na região, com ficha de cada espécie e cartão de conquista para compartilhar o que você avistou.
 
-**Site:** https://robsonbaioco.github.io/bichodex/
+**Acesse:** [robsonbaioco.github.io/bichodex](https://robsonbaioco.github.io/bichodex/) — funciona no navegador e pode ser instalado como aplicativo.
+
+## O que tem
+
+- Catálogo por localização, com filtro por categoria, raio, raridade, risco de extinção e nome.
+- Ficha de cada espécie, com fotos, classificação e quantidade de registros na região.
+- Marcação de espécies avistadas (na natureza ou no zoológico) e cartão de conquista para compartilhar.
+- Bicho do dia e datas comemorativas com o animal associado.
+- Temas visuais: Original, Grafite, Élfico e Jogo.
 
 ## Como funciona
 

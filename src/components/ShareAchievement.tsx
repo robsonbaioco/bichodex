@@ -3,6 +3,7 @@ import { fetchTaxon, type Photo, type Taxon } from '../api'
 import { categoryOf } from '../categories'
 import { displayName, type SeenWhere } from '../format'
 import { CARD_SIZES, SITE_URL, drawCard, loadImage, type CardFormat } from '../shareCard'
+import { currentTheme } from '../themes'
 
 type Source = 'catalog' | 'own'
 
@@ -122,6 +123,7 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
         credit: usingCatalog && photo ? catalogPhoto?.attribution : undefined,
         photo,
         logo,
+        theme: currentTheme(),
       })
       canvas.current.toBlob((blob) => !cancelled && setImage(blob), 'image/jpeg', 0.92)
     }

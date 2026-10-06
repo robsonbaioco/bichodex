@@ -14,7 +14,7 @@ export interface Category {
 const BACTERIA_TAXON_ID = 67333
 
 export const CATEGORIES: Category[] = [
-  { id: 'all', label: 'Tudo', emoji: '🌎', color: '#0f7a4d' },
+  { id: 'all', label: 'Tudo', emoji: '🌎', color: 'var(--brand)' },
   { id: 'mammals', label: 'Mamíferos', emoji: '🦊', color: '#c2703d', iconic: 'Mammalia' },
   { id: 'birds', label: 'Aves', emoji: '🦜', color: '#3b82c4', iconic: 'Aves' },
   { id: 'reptiles', label: 'Répteis', emoji: '🦎', color: '#6f9a2e', iconic: 'Reptilia' },
