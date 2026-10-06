@@ -7,7 +7,11 @@ export interface SpecialDay {
   group: string
   emoji: string
   taxonId: number
-  month: number
+  /** Para datas que não são sobre o animal: por que ele foi associado a ela. */
+  reason?: string
+  /** Data que acompanha a Páscoa, no lugar de mês e dia. */
+  easter?: boolean
+  month?: number
   /** Dia fixo do mês... */
   day?: number
   /** ...ou regra móvel: enésimo (nth; -1 = último) dia da semana (0 = domingo) do mês. */

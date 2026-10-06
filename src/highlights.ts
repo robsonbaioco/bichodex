@@ -1,6 +1,8 @@
 // Lógica dos destaques do dia: o "bicho do dia" sorteado na região e as datas comemorativas de animais.
 
 import { fetchDailyCandidates, type Place, type Taxon } from './api'
+import { ASSOCIATED_DAYS } from './associatedDays'
+import { REMINDERS } from './reminders'
 import { SPECIAL_DAYS, type SpecialDay } from './specialDays'
 import { load, save } from './storage'
 
@@ -41,10 +43,24 @@ export async function dailyAnimal(place: Place, radiusKm: number, signal?: Abort
   return taxon
 }
 
-/** Datas comemorativas que caem no dia informado. */
+/** Domingo de Páscoa do ano, pelo algoritmo gregoriano anônimo (Meeus/Jones/Butcher). */
+function easterOf(year: number): Date {
+  const a = year % 19
+  const b = Math.floor(year / 100)
+  const c = year % 100
+  const h = (19 * a + b - Math.floor(b / 4) - Math.floor((b - Math.floor((b + 8) / 25) + 1) / 3) + 15) % 30
+  const l = (32 + 2 * (b % 4) + 2 * Math.floor(c / 4) - h - (c % 4)) % 7
+  const m = Math.floor((a + 11 * h + 22 * l) / 451)
+  const month = Math.floor((h + l - 7 * m + 114) / 31)
+  const day = ((h + l - 7 * m + 114) % 31) + 1
+  return new Date(year, month - 1, day)
+}
+
+/** Datas comemorativas com animal (as de animais primeiro) que caem no dia informado. */
 export function specialDaysOn(date: Date): SpecialDay[] {
   const month = date.getMonth() + 1
-  return SPECIAL_DAYS.filter((day) => {
+  return [...SPECIAL_DAYS, ...ASSOCIATED_DAYS].filter((day) => {
+    if (day.easter) return dayKey(easterOf(date.getFullYear())) === dayKey(date)
     if (day.month !== month) return false
     if (day.day != null) return day.day === date.getDate()
     if (day.weekday == null || day.nth == null || date.getDay() !== day.weekday) return false
@@ -53,4 +69,9 @@ export function specialDaysOn(date: Date): SpecialDay[] {
     const daysInMonth = new Date(date.getFullYear(), month, 0).getDate()
     return date.getDate() + 7 > daysInMonth
   })
+}
+
+/** Demais datas comemorativas do dia, mostradas só como lembrete. */
+export function remindersOn(date: Date): string[] {
+  return REMINDERS[dayKey(date).slice(5)] ?? []
 }

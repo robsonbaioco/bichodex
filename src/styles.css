@@ -1078,15 +1078,48 @@ select {
 
 /* ---------- Destaques do dia ---------- */
 
-.highlights {
-  display: grid;
-  gap: 0.75rem;
+.today {
   margin-bottom: 1rem;
 }
 
+.reminders {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.reminders b {
+  color: var(--ink);
+}
+
+/* No celular os destaques ficam lado a lado, em rolagem horizontal; em telas largas, em duas colunas. */
+.highlights {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  padding-bottom: 0.25rem;
+}
+
+.highlights > .highlight {
+  flex: 0 0 min(88%, 26rem);
+  scroll-snap-align: start;
+}
+
+.highlights > .highlight:only-child {
+  flex-basis: 100%;
+}
+
 @media (min-width: 1100px) {
-  .highlights:has(.highlight + .highlight) {
+  .highlights {
+    display: grid;
     grid-template-columns: 1fr 1fr;
+    overflow: visible;
+  }
+
+  .highlights > .highlight:only-child {
+    grid-column: 1 / -1;
   }
 }
 

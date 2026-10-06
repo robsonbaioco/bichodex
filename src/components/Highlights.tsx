@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { countSpeciesInArea, fetchTaxon, type Place, type Taxon, type TaxonDetail } from '../api'
 import { displayName, excerpt, formatNumber, htmlToText } from '../format'
-import { dailyAnimal, specialDaysOn } from '../highlights'
+import { dailyAnimal, remindersOn, specialDaysOn } from '../highlights'
 import type { SpecialDay } from '../specialDays'
 
 interface Props {
@@ -66,12 +66,18 @@ function SpecialDayCard({ day, place, radius, onOpen, onExploreGroup }: { day: S
         </span>
       )}
       <div className="highlight-body">
-        <p className="highlight-kicker">{day.emoji} Hoje é o</p>
+        <p className="highlight-kicker">{day.emoji} Hoje é</p>
         <h2>{day.name}</h2>
-        <p className="highlight-text">
-          {blurbOf(taxon)}{' '}
-          {groupCount === 0 && `Não há registros de ${day.group.toLowerCase()} perto de você: já viu no zoológico?`}
-        </p>
+        {day.reason ? (
+          <p className="highlight-text">
+            <b>{day.group}.</b> {day.reason}
+          </p>
+        ) : (
+          <p className="highlight-text">
+            {blurbOf(taxon)}{' '}
+            {groupCount === 0 && `Não há registros de ${day.group.toLowerCase()} perto de você: já viu no zoológico?`}
+          </p>
+        )}
         <div className="highlight-actions">
           {groupCount != null && groupCount > 0 && (
             <button className="btn btn-primary" onClick={() => onExploreGroup(day)}>
@@ -88,7 +94,9 @@ function SpecialDayCard({ day, place, radius, onOpen, onExploreGroup }: { day: S
 }
 
 export function Highlights({ place, radius, seen, onOpen, onMarkSeen, onShare, onExploreGroup }: Props) {
-  const [specialDays] = useState(() => specialDaysOn(previewDate() ?? new Date()))
+  const [today] = useState(() => previewDate() ?? new Date())
+  const specialDays = useMemo(() => specialDaysOn(today), [today])
+  const reminders = useMemo(() => remindersOn(today), [today])
   const [daily, setDaily] = useState<Taxon | null>(null)
 
   useEffect(() => {
@@ -102,12 +110,18 @@ export function Highlights({ place, radius, seen, onOpen, onMarkSeen, onShare, o
 
   const dailyDetail = useTaxonDetail(daily?.id)
 
-  if (!daily && !specialDays.length) return null
+  if (!daily && !specialDays.length && !reminders.length) return null
 
   const dailySeen = !!daily && seen.has(daily.id)
 
   return (
-    <section className="highlights" aria-label="Destaques de hoje">
+    <section className="today" aria-label="Destaques de hoje">
+      {reminders.length > 0 && (
+        <p className="reminders">
+          <b>📅 Hoje {specialDays.length ? 'também ' : ''}é:</b> {reminders.join(' · ')}
+        </p>
+      )}
+      <div className="highlights">
       {specialDays.map((day) => (
         <SpecialDayCard
           key={day.name}
@@ -146,6 +160,7 @@ export function Highlights({ place, radius, seen, onOpen, onMarkSeen, onShare, o
           </div>
         </article>
       )}
+      </div>
     </section>
   )
 }
