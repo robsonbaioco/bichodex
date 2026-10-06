@@ -3,7 +3,17 @@
 
 import { load, save } from './storage'
 
-export type ThemeId = 'original' | 'grafite' | 'elfico' | 'jogo'
+export type ThemeId =
+  | 'original'
+  | 'grafite'
+  | 'elfico'
+  | 'jogo'
+  | 'cordel'
+  | 'campo'
+  | 'terminal'
+  | 'noturno'
+  | 'carta'
+  | 'parque'
 
 export interface Theme {
   id: ThemeId
@@ -38,12 +48,12 @@ export const THEMES: Theme[] = [
     id: 'grafite',
     label: 'Grafite',
     emoji: '🎨',
-    description: 'Arte de rua: muro escuro, spray neon e letras de marcador.',
-    chrome: '#0d0d10',
-    swatch: ['#17171b', '#ff2e88', '#d7ff2f'],
-    displayFont: `'Permanent Marker', ${SYSTEM_FONT}`,
+    description: 'Arte de rua: muro preto, spray neon e tinta escorrendo.',
+    chrome: '#0a0a0d',
+    swatch: ['#0c0c10', '#ff2e9a', '#c8ff1f'],
+    displayFont: `'Rubik Wet Paint', 'Permanent Marker', ${SYSTEM_FONT}`,
     displayWeight: 400,
-    card: { bg: '#17171b', deep: '#b80f5a', ink: '#fff', accent: '#d7ff2f', onAccent: '#1a2000' },
+    card: { bg: '#0c0c10', deep: '#a80f5f', ink: '#fff', accent: '#c8ff1f', onAccent: '#141b00' },
   },
   {
     id: 'elfico',
@@ -66,6 +76,72 @@ export const THEMES: Theme[] = [
     displayFont: "'Press Start 2P', ui-monospace, Consolas, monospace",
     displayWeight: 400,
     card: { bg: '#dc0a2d', deep: '#8b0a1e', ink: '#fff', accent: '#ffcb05', onAccent: '#1b1b2f' },
+  },
+  {
+    id: 'cordel',
+    label: 'Cordel',
+    emoji: '📜',
+    description: 'Xilogravura: papel kraft, tinta preta e folhetos no barbante.',
+    chrome: '#dcbc8a',
+    swatch: ['#dcbc8a', '#17110c', '#b3261a'],
+    displayFont: "'Alfa Slab One', Rockwell, Georgia, serif",
+    displayWeight: 400,
+    card: { bg: '#dcbc8a', deep: '#c9a468', ink: '#17110c', accent: '#b3261a', onAccent: '#f6e6c8' },
+  },
+  {
+    id: 'campo',
+    label: 'Naturalista',
+    emoji: '📓',
+    description: 'Caderno de campo: papel quadriculado, polaroides e letra à mão.',
+    chrome: '#f4efe1',
+    swatch: ['#f4efe1', '#c0392b', '#2f4f9e'],
+    displayFont: "'Caveat', 'Segoe Print', cursive",
+    displayWeight: 700,
+    card: { bg: '#f4efe1', deep: '#e6dcc0', ink: '#2b2a26', accent: '#c0392b', onAccent: '#fff' },
+  },
+  {
+    id: 'terminal',
+    label: 'Terminal',
+    emoji: '📟',
+    description: 'Monitor de fósforo verde: uma cor só e fonte de console.',
+    chrome: '#010a03',
+    swatch: ['#010a03', '#06200f', '#39ff7a'],
+    displayFont: "'VT323', ui-monospace, Consolas, monospace",
+    displayWeight: 400,
+    card: { bg: '#010a03', deep: '#06200f', ink: '#39ff7a', accent: '#39ff7a', onAccent: '#010a03' },
+  },
+  {
+    id: 'noturno',
+    label: 'Noturno',
+    emoji: '🌌',
+    description: 'Floresta bioluminescente: roxo profundo com brilho neon.',
+    chrome: '#07021a',
+    swatch: ['#07021a', '#d926cc', '#22f5e0'],
+    displayFont: `'Orbitron', ${SYSTEM_FONT}`,
+    displayWeight: 800,
+    card: { bg: '#07021a', deep: '#3b1470', ink: '#f3eaff', accent: '#22f5e0', onAccent: '#04121a' },
+  },
+  {
+    id: 'carta',
+    label: 'Colecionável',
+    emoji: '🃏',
+    description: 'Carta holográfica: moldura amarela e letra de gibi.',
+    chrome: '#e3242b',
+    swatch: ['#1c1470', '#e3242b', '#ffd400'],
+    displayFont: "'Bangers', Impact, sans-serif",
+    displayWeight: 400,
+    card: { bg: '#1c1470', deep: '#e3242b', ink: '#fff', accent: '#ffd400', onAccent: '#1c1470' },
+  },
+  {
+    id: 'parque',
+    label: 'Parque',
+    emoji: '🏞️',
+    description: 'Cartaz vintage: pôr do sol, serra em camadas e letras de placa.',
+    chrome: '#f4a261',
+    swatch: ['#f3dfae', '#2a9d8f', '#cf4f33'],
+    displayFont: "'Bebas Neue', 'Arial Narrow', Impact, sans-serif",
+    displayWeight: 400,
+    card: { bg: '#2a9d8f', deep: '#1d3557', ink: '#fbf3dc', accent: '#e9c46a', onAccent: '#1d3557' },
   },
 ]
 

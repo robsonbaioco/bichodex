@@ -1,0 +1,1219 @@
+/* Temas de visual único (não acompanham o claro/escuro do aparelho). As fotos ficam sempre naturais. */
+
+/* ---------- Grafite: muro preto, spray neon, tinta escorrendo ---------- */
+
+:root[data-theme='grafite'] {
+  color-scheme: dark;
+  --bg: #0c0c10;
+  --surface: #18181f;
+  --surface-2: #22222c;
+  --ink: #f5f5f2;
+  --muted: #a8a8b8;
+  --line: #34343f;
+  --brand: #ff2e9a;
+  --brand-deep: #a80f5f;
+  --on-brand: #12040b;
+  --accent: #c8ff1f;
+  --accent-deep: #8fbf00;
+  --on-accent: #141b00;
+  --danger: #ff6b5e;
+  --link: #31e6ff;
+  --topbar-bg: #0a0a0d;
+  --topbar-ink: #f5f5f2;
+  --topbar-line: var(--brand);
+  --pill-bg: rgb(255 255 255 / 0.1);
+  --btn-shadow: 0 0 0 2px var(--accent), 0 0 14px rgb(255 46 154 / 0.7);
+  --btn-shadow-active: 0 0 0 2px var(--accent);
+  --radius: 6px;
+  --radius-sm: 4px;
+  --radius-lg: 8px;
+  --radius-pill: 4px;
+  --bw: 2px;
+  --font-display: 'Permanent Marker', 'Comic Sans MS', cursive;
+  --spray: conic-gradient(from 20deg, #ff2e9a, #ff9a1f, #c8ff1f, #31e6ff, #a45cff, #ff2e9a);
+  /* manchas de spray nas bordas, sobre fiadas de tijolo */
+  --bg-image:
+    radial-gradient(circle at 0 12rem, rgb(255 46 154 / 0.28), transparent 18rem),
+    radial-gradient(circle at 100% 6rem, rgb(49 230 255 / 0.2), transparent 18rem),
+    radial-gradient(circle at 100% 38rem, rgb(200 255 31 / 0.14), transparent 16rem),
+    radial-gradient(circle at 0 46rem, rgb(164 92 255 / 0.22), transparent 18rem),
+    repeating-linear-gradient(0deg, transparent 0 30px, rgb(255 255 255 / 0.04) 30px 32px),
+    repeating-linear-gradient(90deg, transparent 0 78px, rgb(255 255 255 / 0.025) 78px 80px);
+}
+
+:root[data-theme='grafite'] :is(.brand, .welcome-card h1, .detail-body h2, .highlight h2, .world h2) {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* a letra de tinta escorrida só funciona em tamanho grande */
+:root[data-theme='grafite'] .detail-body h2 {
+  font-family: 'Rubik Wet Paint', var(--font-display);
+}
+
+:root[data-theme='grafite'] .topbar {
+  box-shadow: 0 0 18px rgb(255 46 154 / 0.6);
+}
+
+/* tinta escorrendo da linha neon */
+:root[data-theme='grafite'] .topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 34px;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='34'%3E%3Cg fill='%23ff2e9a'%3E%3Crect x='26' y='-8' width='6' height='36' rx='3'/%3E%3Crect x='44' y='-8' width='4' height='20' rx='2'/%3E%3Crect x='228' y='-8' width='5' height='40' rx='2.5'/%3E%3Crect x='366' y='-8' width='6' height='29' rx='3'/%3E%3C/g%3E%3Cg fill='%23c8ff1f'%3E%3Crect x='138' y='-8' width='6' height='26' rx='3'/%3E%3Crect x='296' y='-8' width='4' height='17' rx='2'/%3E%3C/g%3E%3C/svg%3E")
+    repeat-x;
+}
+
+/* a marca é o logo grafitado; o texto continua lá para leitores de tela */
+:root[data-theme='grafite'] :is(.brand span, .welcome-card h1) {
+  background: url('./assets/grafite-logo.webp') center / contain no-repeat;
+  color: transparent;
+  font-size: 0;
+  aspect-ratio: 1344 / 314;
+}
+
+:root[data-theme='grafite'] .brand span {
+  height: 2.5rem;
+}
+
+:root[data-theme='grafite'] .welcome-card h1 {
+  width: min(100%, 19rem);
+  justify-self: center;
+}
+
+:root[data-theme='grafite'] .welcome-card {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 30px rgb(255 46 154 / 0.6);
+}
+
+:root[data-theme='grafite'] :is(.btn, .tag, .toggle) {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+:root[data-theme='grafite'] .btn:not(.btn-primary) {
+  border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+:root[data-theme='grafite'] .btn-primary {
+  border-color: #000;
+}
+
+/* moldura de spray multicolorido */
+:root[data-theme='grafite'] .card:not(.skeleton) {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--spray) border-box;
+}
+
+:root[data-theme='grafite'] .card:not(.skeleton):hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 22px rgb(255 46 154 / 0.65);
+}
+
+:root[data-theme='grafite'] .card:has(.seen-toggle.is-seen) {
+  box-shadow: 0 0 18px rgb(200 255 31 / 0.55);
+}
+
+:root[data-theme='grafite'] .card-number {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+:root[data-theme='grafite'] .highlight {
+  border-color: #31e6ff;
+  box-shadow:
+    0 0 16px rgb(49 230 255 / 0.45),
+    inset 0 0 12px rgb(49 230 255 / 0.12);
+}
+
+:root[data-theme='grafite'] .highlight-special {
+  border-color: var(--brand);
+  box-shadow:
+    0 0 16px rgb(255 46 154 / 0.45),
+    inset 0 0 12px rgb(255 46 154 / 0.12);
+}
+
+:root[data-theme='grafite'] .highlights {
+  padding: 0.9rem;
+  margin: -0.9rem;
+}
+
+:root[data-theme='grafite'] .highlight-kicker {
+  color: var(--accent);
+}
+
+:root[data-theme='grafite'] .seen-counter {
+  box-shadow: 0 0 12px rgb(200 255 31 / 0.6);
+}
+
+@media (min-width: 900px) {
+  :root[data-theme='grafite'] .categories {
+    margin: 1rem 0 0 0.9rem;
+    padding: 0.5rem;
+    background: rgb(24 24 31 / 0.92);
+    border: 2px solid var(--line);
+    border-radius: var(--radius);
+    max-height: calc(100dvh - 5.5rem);
+  }
+}
+
+/* em telas largas, o muro grafitado aparece nas laterais, fora da área de conteúdo */
+@media (min-width: 1500px) {
+  :root[data-theme='grafite'] body {
+    background-image:
+      url('./assets/grafite-muro-esq.webp'), url('./assets/grafite-muro-dir.webp'), var(--bg-image);
+    /* um valor por camada: as seis de --bg-image vêm depois das duas do muro */
+    background-position: left top, right top, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+    background-repeat: repeat-y, repeat-y, repeat, repeat, repeat, repeat, repeat, repeat;
+    background-size: 124px auto, 124px auto, auto, auto, auto, auto, auto, auto;
+  }
+}
+
+/* ---------- Cordel: xilogravura, papel kraft, folhetos no barbante ---------- */
+
+:root[data-theme='cordel'] {
+  color-scheme: light;
+  --bg: #dcbc8a;
+  --surface: #ecd6ad;
+  --surface-2: #e3c99a;
+  --ink: #17110c;
+  --muted: #4a3a2b;
+  --line: #17110c;
+  --brand: #17110c;
+  --brand-deep: #000;
+  --on-brand: #ecd6ad;
+  --accent: #b3261a;
+  --accent-deep: #7d160e;
+  --on-accent: #f6e6c8;
+  --danger: #8f1d13;
+  --link: #8f1d13;
+  --topbar-bg: #dcbc8a;
+  --topbar-ink: #17110c;
+  --topbar-line: #17110c;
+  --pill-bg: rgb(23 17 12 / 0.12);
+  --btn-shadow: 3px 3px 0 var(--accent);
+  --btn-shadow-active: 1px 1px 0 var(--accent);
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 2px;
+  --radius-pill: 0px;
+  --bw: 2px;
+  --font-display: 'Alfa Slab One', Rockwell, Georgia, serif;
+  --bg-image: repeating-linear-gradient(93deg, rgb(0 0 0 / 0.04) 0 1px, transparent 1px 7px);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+:root[data-theme='cordel'] :is(.brand, .welcome-card h1, .detail-body h2, .highlight h2, .world h2, .card-body h3) {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+:root[data-theme='cordel'] .card-body h3 {
+  font-size: 0.85rem;
+}
+
+:root[data-theme='cordel'] .topbar {
+  border-bottom: 6px double var(--ink);
+}
+
+:root[data-theme='cordel'] .logo {
+  border-radius: 0;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+:root[data-theme='cordel'] :is(.btn, .chip, .toggle) {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.82rem;
+}
+
+:root[data-theme='cordel'] .seen-counter {
+  rotate: -3deg;
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* cada folheto pende do barbante por um pregador */
+:root[data-theme='cordel'] .grid {
+  row-gap: 1.75rem;
+  padding-top: 0.9rem;
+}
+
+:root[data-theme='cordel'] .card {
+  border: 2.5px solid var(--ink);
+  overflow: visible;
+}
+
+:root[data-theme='cordel'] .card::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  width: 8px;
+  height: 20px;
+  margin-left: -4px;
+  background: #8a5a2b;
+  border: 1.5px solid var(--ink);
+  z-index: 2;
+}
+
+:root[data-theme='cordel'] .card::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: -0.5rem;
+  right: -0.5rem;
+  border-top: 1.5px solid #5a4630;
+  z-index: 1;
+}
+
+:root[data-theme='cordel'] .card:hover {
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+:root[data-theme='cordel'] .card-photo {
+  border-bottom: 2.5px solid var(--ink);
+}
+
+:root[data-theme='cordel'] .card-number {
+  background: var(--ink);
+  color: var(--surface);
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+:root[data-theme='cordel'] .seen-toggle.is-seen {
+  background: var(--accent);
+  color: var(--on-accent);
+  rotate: 8deg;
+}
+
+:root[data-theme='cordel'] .tag {
+  background: none;
+  border-color: var(--ink);
+}
+
+:root[data-theme='cordel'] .card-count {
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* moldura dupla */
+:root[data-theme='cordel'] .highlights {
+  padding: 5px;
+}
+
+:root[data-theme='cordel'] .highlight {
+  border: 3px solid var(--ink);
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+
+:root[data-theme='cordel'] .highlight > img {
+  border: 2px solid var(--ink);
+}
+
+:root[data-theme='cordel'] .highlight-kicker {
+  color: var(--accent);
+}
+
+:root[data-theme='cordel'] .footer::before {
+  content: '✶ ✶ ✶';
+  display: block;
+  color: var(--accent);
+  letter-spacing: 0.5em;
+  margin-bottom: 0.5rem;
+}
+
+/* ---------- Naturalista: caderno de campo ---------- */
+
+:root[data-theme='campo'] {
+  color-scheme: light;
+  --bg: #f4efe1;
+  --surface: #fffdf6;
+  --surface-2: #f1ead6;
+  --ink: #2b2a26;
+  --muted: #5d5a50;
+  --line: #c9c2ab;
+  --brand: #c0392b;
+  --brand-deep: #8e2a20;
+  --on-brand: #fff;
+  --accent: #ffe566;
+  --accent-deep: #c9a800;
+  --on-accent: #2b2a26;
+  --danger: #b03024;
+  --link: #2f4f9e;
+  --topbar-bg: #f4efe1;
+  --topbar-ink: #2b2a26;
+  --topbar-line: rgb(192 57 43 / 0.6);
+  --pill-bg: rgb(47 79 158 / 0.1);
+  --btn-shadow: 2px 2px 0 var(--brand-deep);
+  --btn-shadow-active: 0 0 0 var(--brand-deep);
+  --radius: 3px;
+  --radius-sm: 3px;
+  --radius-lg: 6px;
+  --radius-pill: 3px;
+  --font-display: 'Caveat', 'Segoe Print', cursive;
+  /* papel quadriculado */
+  --bg-image:
+    linear-gradient(rgb(70 110 160 / 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(70 110 160 / 0.16) 1px, transparent 1px);
+  --bg-size: 16px 16px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+:root[data-theme='campo'] .categories {
+  background-image: var(--bg-image);
+  background-size: var(--bg-size);
+}
+
+:root[data-theme='campo']
+  :is(.brand, .welcome-card h1, .detail-body h2, .highlight h2, .world h2, .card-body h3, .place-pill, .card-count) {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+}
+
+:root[data-theme='campo'] .brand {
+  font-size: 1.7rem;
+}
+
+:root[data-theme='campo'] .welcome-card h1 {
+  font-size: 2.8rem;
+}
+
+:root[data-theme='campo'] .detail-body h2 {
+  font-size: 2.2rem;
+}
+
+:root[data-theme='campo'] .highlight h2 {
+  font-size: 1.6rem;
+}
+
+:root[data-theme='campo'] .world h2 {
+  font-size: 1.5rem;
+}
+
+:root[data-theme='campo'] .card-body h3 {
+  font-size: 1.3rem;
+}
+
+:root[data-theme='campo'] .topbar {
+  border-bottom-width: 2px;
+}
+
+:root[data-theme='campo'] .logo {
+  box-shadow: none;
+}
+
+:root[data-theme='campo'] .place-pill {
+  color: var(--link);
+  font-size: 1.15rem;
+}
+
+/* carimbo */
+:root[data-theme='campo'] .seen-counter {
+  background: none;
+  border: 2px solid var(--brand);
+  color: var(--brand);
+  rotate: -4deg;
+}
+
+/* abas de fichário, na cor da categoria */
+:root[data-theme='campo'] .chip {
+  background: color-mix(in srgb, var(--c) 30%, var(--surface));
+  border-color: transparent;
+}
+
+:root[data-theme='campo'] .chip.is-active {
+  border-color: var(--ink);
+  box-shadow: none;
+}
+
+:root[data-theme='campo'] .btn {
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+/* polaroides presas com fita */
+:root[data-theme='campo'] .grid {
+  gap: 1.1rem 0.9rem;
+  padding-top: 0.5rem;
+}
+
+:root[data-theme='campo'] .card {
+  background: #fff;
+  border: 0;
+  padding: 0.4rem 0.4rem 0;
+  box-shadow: 1px 2px 5px rgb(0 0 0 / 0.28);
+  overflow: visible;
+}
+
+:root[data-theme='campo'] .card:nth-child(odd) {
+  rotate: -1.2deg;
+}
+
+:root[data-theme='campo'] .card:nth-child(3n) {
+  rotate: 1deg;
+}
+
+:root[data-theme='campo'] .card::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 32%;
+  width: 3.2rem;
+  height: 15px;
+  background: color-mix(in srgb, var(--c, #7a7) 55%, transparent);
+  rotate: -3deg;
+  z-index: 2;
+}
+
+:root[data-theme='campo'] .card:nth-child(even)::before {
+  left: 44%;
+  rotate: 4deg;
+}
+
+:root[data-theme='campo'] .card-number {
+  background: none;
+  text-shadow: 0 1px 3px #000;
+}
+
+:root[data-theme='campo'] .seen-toggle.is-seen {
+  background: rgb(255 255 255 / 0.88);
+  color: var(--brand);
+  border-color: var(--brand);
+  rotate: -12deg;
+}
+
+:root[data-theme='campo'] .card-body {
+  padding-inline: 0.15rem;
+}
+
+:root[data-theme='campo'] .card-body .sci {
+  font-size: 0.72rem;
+}
+
+:root[data-theme='campo'] .tag {
+  border: 0;
+  background: none;
+  padding: 0;
+  text-decoration: underline;
+}
+
+:root[data-theme='campo'] .card-count {
+  font-size: 1.1rem;
+  color: var(--link);
+}
+
+/* o destaque é um bilhete adesivo */
+:root[data-theme='campo'] .highlights {
+  padding: 0.4rem 0.4rem 0.6rem;
+  margin: -0.4rem;
+}
+
+:root[data-theme='campo'] .highlight {
+  background: #fff7b8;
+  border: 0;
+  box-shadow: 2px 3px 0 rgb(0 0 0 / 0.12);
+  rotate: -0.4deg;
+}
+
+:root[data-theme='campo'] .highlight-special {
+  background: #d9ecd3;
+}
+
+:root[data-theme='campo'] .highlight > img {
+  border: 4px solid #fff;
+  border-radius: 0;
+  box-shadow: 1px 2px 3px rgb(0 0 0 / 0.3);
+  rotate: -3deg;
+}
+
+:root[data-theme='campo'] .highlight-kicker {
+  color: var(--brand);
+}
+
+/* ---------- Terminal: monitor de fósforo verde ---------- */
+
+:root[data-theme='terminal'] {
+  color-scheme: dark;
+  --bg: #010a03;
+  --surface: #03130a;
+  --surface-2: #06200f;
+  --ink: #39ff7a;
+  --muted: #22b85a;
+  --line: #1a8f45;
+  --brand: #39ff7a;
+  --brand-deep: #1a8f45;
+  --on-brand: #010a03;
+  --accent: #39ff7a;
+  --accent-deep: #1a8f45;
+  --on-accent: #010a03;
+  --danger: #ffb000;
+  --link: #b6ffcf;
+  --topbar-bg: #010a03;
+  --topbar-ink: #39ff7a;
+  --topbar-line: #1a8f45;
+  --pill-bg: transparent;
+  --btn-shadow: none;
+  --btn-shadow-active: none;
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+  --radius-pill: 0px;
+  --bw: 1px;
+  --mono: 'VT323', ui-monospace, Consolas, monospace;
+  --font-display: var(--mono);
+  /* linhas de varredura ficam no fundo, sem cobrir as fotos */
+  --bg-image:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.35) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 20rem, #06300f 0, transparent 60rem);
+  font-family: var(--mono);
+  font-size: 118%;
+  line-height: 1.2;
+  text-shadow: 0 0 5px rgb(57 255 122 / 0.45);
+}
+
+/* a fonte tem um peso só: negrito sintético borra */
+:root[data-theme='terminal'] :is(h1, h2, h3, b, strong, dd, .btn, .chip, .tag, .toggle, .links, .brand, .seen-counter, .card-number, .detail-number, .highlight-kicker) {
+  font-weight: 400;
+}
+
+:root[data-theme='terminal'] b {
+  color: var(--link);
+}
+
+:root[data-theme='terminal'] :is(.brand, .welcome-card h1, .detail-body h2, .highlight h2, .world h2, .card-body h3, .btn, .chip) {
+  text-transform: uppercase;
+}
+
+:root[data-theme='terminal'] .topbar {
+  border-bottom: 1px dashed var(--topbar-line);
+}
+
+:root[data-theme='terminal'] .brand {
+  font-size: 1.5rem;
+}
+
+:root[data-theme='terminal'] .brand span::after {
+  content: '_';
+  animation: terminal-blink 1s steps(1) infinite;
+}
+
+@keyframes terminal-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+:root[data-theme='terminal'] .logo {
+  border-radius: 0;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+:root[data-theme='terminal'] :is(.place-pill, .theme-btn) {
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+:root[data-theme='terminal'] :is(.seen-counter, .btn-primary, .chip.is-active, .seen-toggle.is-seen, .card-number, .card-risk) {
+  text-shadow: none;
+}
+
+:root[data-theme='terminal'] .chip {
+  background: none;
+  border-color: transparent;
+}
+
+:root[data-theme='terminal'] .chip-label::before {
+  content: '[';
+}
+
+:root[data-theme='terminal'] .chip-label::after {
+  content: ']';
+}
+
+:root[data-theme='terminal'] .chip.is-active {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: none;
+}
+
+:root[data-theme='terminal'] .chip.is-active .chip-count {
+  color: inherit;
+}
+
+:root[data-theme='terminal'] .btn {
+  background: none;
+}
+
+:root[data-theme='terminal'] .btn-primary {
+  background: var(--ink);
+}
+
+:root[data-theme='terminal'] .btn-primary::before {
+  content: '> ';
+}
+
+:root[data-theme='terminal'] .card {
+  border: 1px dashed var(--line);
+}
+
+:root[data-theme='terminal'] .card:hover {
+  border-style: solid;
+  box-shadow: 0 0 14px rgb(57 255 122 / 0.4);
+}
+
+:root[data-theme='terminal'] .card-number {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+:root[data-theme='terminal'] .seen-toggle {
+  border-radius: 0;
+  border: 1px solid var(--ink);
+  background: var(--bg);
+}
+
+:root[data-theme='terminal'] .seen-toggle.is-seen {
+  background: var(--ink);
+}
+
+:root[data-theme='terminal'] .tag {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+:root[data-theme='terminal'] .tag::before {
+  content: '#';
+}
+
+:root[data-theme='terminal'] .highlight {
+  border: 1px dashed var(--line);
+}
+
+:root[data-theme='terminal'] .sheet {
+  border-top-color: var(--ink);
+}
+
+:root[data-theme='terminal'] .meter span {
+  background: var(--ink);
+}
+
+/* ---------- Noturno: floresta bioluminescente ---------- */
+
+:root[data-theme='noturno'] {
+  color-scheme: dark;
+  --bg: #07021a;
+  --surface: #150b33;
+  --surface-2: #1e1245;
+  --ink: #f3eaff;
+  --muted: #b9abd9;
+  --line: #3a2a6b;
+  --brand: #d926cc;
+  --brand-deep: #7b3dff;
+  --on-brand: #fff;
+  --accent: #22f5e0;
+  --accent-deep: #0fb5a5;
+  --on-accent: #04121a;
+  --danger: #ff8fa3;
+  --link: #22f5e0;
+  --topbar-bg: rgb(7 2 26 / 0.82);
+  --topbar-ink: #f3eaff;
+  --topbar-line: #ff3df0;
+  --pill-bg: rgb(255 255 255 / 0.1);
+  --btn-shadow: 0 0 14px rgb(255 61 240 / 0.7);
+  --btn-shadow-active: 0 0 6px rgb(255 61 240 / 0.7);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --bw: 1px;
+  --font-display: 'Orbitron', system-ui, sans-serif;
+}
+
+/* manchas de luz fixas atrás do conteúdo */
+:root[data-theme='noturno'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 10% 8%, rgb(255 0 200 / 0.42), transparent 38%),
+    radial-gradient(circle at 96% 45%, rgb(0 229 255 / 0.32), transparent 36%),
+    radial-gradient(circle at 30% 100%, rgb(130 60 255 / 0.5), transparent 42%);
+}
+
+:root[data-theme='noturno'] :is(.brand, .welcome-card h1, .detail-body h2, .highlight h2, .world h2) {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+:root[data-theme='noturno'] .brand {
+  font-size: 1rem;
+  text-shadow:
+    0 0 10px #ff3df0,
+    0 0 2px #fff;
+}
+
+:root[data-theme='noturno'] .welcome-card h1 {
+  font-size: 1.6rem;
+  text-shadow: 0 0 14px #ff3df0;
+}
+
+:root[data-theme='noturno'] .detail-body h2 {
+  font-size: 1.25rem;
+}
+
+:root[data-theme='noturno'] :is(.highlight h2, .world h2) {
+  font-size: 0.95rem;
+}
+
+:root[data-theme='noturno'] .topbar {
+  border-bottom-width: 2px;
+  box-shadow: 0 0 18px rgb(255 61 240 / 0.5);
+  backdrop-filter: blur(10px);
+}
+
+:root[data-theme='noturno'] .categories {
+  background: rgb(7 2 26 / 0.85);
+}
+
+:root[data-theme='noturno'] .seen-counter {
+  box-shadow: 0 0 12px var(--accent);
+}
+
+:root[data-theme='noturno'] .chip.is-active {
+  box-shadow:
+    inset 0 0 0 1px var(--c),
+    0 0 10px var(--c);
+}
+
+:root[data-theme='noturno'] .btn {
+  border-radius: 999px;
+}
+
+:root[data-theme='noturno'] .btn-primary {
+  background: linear-gradient(90deg, #e11fd3, #7b3dff);
+  border-color: transparent;
+}
+
+:root[data-theme='noturno'] .card:not(.skeleton) {
+  background: rgb(255 255 255 / 0.06);
+  border-color: rgb(255 255 255 / 0.16);
+  border-bottom-color: var(--c);
+}
+
+:root[data-theme='noturno'] .card:not(.skeleton):hover {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--c) 70%, transparent);
+}
+
+/* as espécies avistadas acendem */
+:root[data-theme='noturno'] .card:has(.seen-toggle.is-seen) {
+  border-color: #ff3df0;
+  box-shadow: 0 0 14px rgb(255 61 240 / 0.6);
+}
+
+:root[data-theme='noturno'] .card-number {
+  background: rgb(7 2 26 / 0.75);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+:root[data-theme='noturno'] .seen-toggle.is-seen {
+  box-shadow: 0 0 10px var(--accent);
+}
+
+:root[data-theme='noturno'] .highlights {
+  padding: 0.9rem;
+  margin: -0.9rem;
+}
+
+:root[data-theme='noturno'] .highlight {
+  background: rgb(255 255 255 / 0.06);
+  border-color: rgb(34 245 224 / 0.7);
+  box-shadow: 0 0 14px rgb(34 245 224 / 0.4);
+}
+
+:root[data-theme='noturno'] .highlight-special {
+  border-color: rgb(255 61 240 / 0.7);
+  box-shadow: 0 0 14px rgb(255 61 240 / 0.4);
+}
+
+:root[data-theme='noturno'] .highlight-kicker {
+  color: var(--accent);
+}
+
+/* ---------- Colecionável: carta holográfica ---------- */
+
+:root[data-theme='carta'] {
+  color-scheme: light;
+  /* --ink e --muted valem para o texto solto sobre o fundo azul; as superfícies claras os redefinem abaixo */
+  --bg: #1c1470;
+  --surface: #fff8dc;
+  --surface-2: #ffefb0;
+  --ink: #fff;
+  --muted: #cfd3ff;
+  --line: #5a50d0;
+  --brand: #e3242b;
+  --brand-deep: #1c1470;
+  --on-brand: #fff;
+  --accent: #ffd400;
+  --accent-deep: #1c1470;
+  --on-accent: #1c1470;
+  --danger: #ffb3a8;
+  --link: #ffd400;
+  --topbar-bg: #e3242b;
+  --topbar-ink: #fff;
+  --topbar-line: #ffd400;
+  --pill-bg: #1c1470;
+  --btn-shadow: 3px 3px 0 #0d0840;
+  --btn-shadow-active: 1px 1px 0 #0d0840;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --bw: 2px;
+  --navy: #1c1470;
+  --font-display: 'Bangers', Impact, sans-serif;
+  --bg-image: repeating-conic-gradient(from 0deg at 50% 22rem, #2a1fa0 0 10deg, transparent 10deg 20deg);
+  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+}
+
+:root[data-theme='carta'] :is(.card, .highlight, .sheet, .welcome-card, .notice, .install, .toggle, .chip, .btn:not(.btn-primary), input, select) {
+  --ink: var(--navy);
+  --muted: #4a4580;
+  --line: var(--navy);
+  --link: #2b3fd0;
+  --danger: #c4161c;
+  color: var(--ink);
+}
+
+:root[data-theme='carta']
+  :is(.brand, .welcome-card h1, .detail-body h2, .highlight h2, .world h2, .card-body h3, .seen-counter, .card-number, .card-count, .btn-primary) {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+:root[data-theme='carta'] .brand {
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--accent);
+  -webkit-text-stroke: 1px var(--navy);
+  text-shadow: 2px 2px 0 var(--navy);
+}
+
+:root[data-theme='carta'] .welcome-card h1 {
+  font-size: 2.8rem;
+  color: var(--brand);
+}
+
+:root[data-theme='carta'] .highlight h2 {
+  font-size: 1.5rem;
+}
+
+:root[data-theme='carta'] .card-body h3 {
+  font-size: 1.15rem;
+  line-height: 1.05;
+}
+
+:root[data-theme='carta'] .seen-counter {
+  border: 2px solid var(--navy);
+  font-size: 1rem;
+}
+
+:root[data-theme='carta'] .categories {
+  background-image: var(--bg-image);
+}
+
+:root[data-theme='carta'] .chip {
+  background: #fff;
+  border-color: var(--navy);
+  box-shadow: 2px 2px 0 #0d0840;
+  font-weight: 800;
+}
+
+:root[data-theme='carta'] .chip.is-active {
+  background: var(--accent);
+}
+
+:root[data-theme='carta'] .btn {
+  border-radius: 999px;
+  border-color: var(--navy);
+  box-shadow: 2px 2px 0 #0d0840;
+}
+
+:root[data-theme='carta'] .btn-primary {
+  background: var(--navy);
+  color: var(--accent);
+  box-shadow: var(--btn-shadow);
+}
+
+/* moldura amarela; nas avistadas, holográfica */
+:root[data-theme='carta'] .card {
+  border: 5px solid var(--accent);
+  box-shadow:
+    0 0 0 2px var(--navy),
+    4px 5px 0 #0d0840;
+}
+
+:root[data-theme='carta'] .card:has(.seen-toggle.is-seen) {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(115deg, #ff5fa2, #ffd400, #3fe0ff, #a45cff, #ff5fa2) border-box;
+}
+
+:root[data-theme='carta'] .card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    0 0 0 2px var(--navy),
+    6px 7px 0 #0d0840;
+}
+
+:root[data-theme='carta'] .card-photo {
+  margin: 0.35rem 0.35rem 0;
+  border: 2px solid var(--navy);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+:root[data-theme='carta'] .card-number {
+  background: var(--brand);
+  border: 1.5px solid var(--navy);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+:root[data-theme='carta'] .seen-toggle {
+  top: 0.6rem;
+  right: 0.6rem;
+}
+
+:root[data-theme='carta'] .seen-toggle.is-seen {
+  border-color: var(--navy);
+}
+
+:root[data-theme='carta'] .card-count {
+  font-size: 1rem;
+  color: var(--brand);
+}
+
+:root[data-theme='carta'] .card-count::before {
+  content: '★ ';
+}
+
+:root[data-theme='carta'] .highlights {
+  padding: 0 6px 6px 0;
+}
+
+:root[data-theme='carta'] .highlight {
+  --muted: var(--navy);
+  background: linear-gradient(135deg, #ff9cc6, #ffe14d 50%, #8fe9ff);
+  border: 3px solid #fff;
+  box-shadow: 4px 4px 0 #0d0840;
+}
+
+:root[data-theme='carta'] .highlight > img {
+  border: 3px solid var(--navy);
+}
+
+/* ---------- Parque: cartaz vintage ---------- */
+
+:root[data-theme='parque'] {
+  color-scheme: light;
+  --bg: #f3dfae;
+  --surface: #fbf3dc;
+  --surface-2: #f2e6c2;
+  --ink: #1d3557;
+  --muted: #3f5878;
+  --line: #c9b98a;
+  --brand: #cf4f33;
+  --brand-deep: #1d3557;
+  --on-brand: #fff;
+  --accent: #e9c46a;
+  --accent-deep: #b8922f;
+  --on-accent: #1d3557;
+  --danger: #b23a24;
+  --link: #1b6f65;
+  /* serra em duas camadas sob um céu de pôr do sol */
+  --topbar-bg:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='24' preserveAspectRatio='none'%3E%3Cpath fill='%232a9d8f' d='M0 24V14l50-9 42 8 60-13 58 14 50-8 52 9 46-11 62 9v11z'/%3E%3Cpath fill='%231d3557' d='M0 24v-6l62 3 62-10 64 9 56-6 84 8 92-9v11z'/%3E%3C/svg%3E")
+      bottom / 420px 24px repeat-x,
+    linear-gradient(#f4a261 0 45%, #f0b56a 45% 75%, #e9c46a 75%);
+  --topbar-ink: #1d3557;
+  --topbar-line: #1d3557;
+  --pill-bg: #1d3557;
+  --btn-shadow: 3px 3px 0 #1d3557;
+  --btn-shadow-active: 1px 1px 0 #1d3557;
+  --radius: 4px;
+  --radius-sm: 3px;
+  --radius-lg: 8px;
+  --radius-pill: 3px;
+  --cream: #fbf3dc;
+  --font-display: 'Bebas Neue', 'Arial Narrow', Impact, sans-serif;
+  font-family: 'Gill Sans', 'Gill Sans MT', 'Trebuchet MS', sans-serif;
+}
+
+:root[data-theme='parque']
+  :is(.brand, .welcome-card h1, .detail-body h2, .highlight h2, .world h2, .card-body h3, .chip, .btn, .card-number, .card-count) {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+:root[data-theme='parque'] .brand {
+  font-size: 1.8rem;
+}
+
+:root[data-theme='parque'] .welcome-card h1 {
+  font-size: 3rem;
+}
+
+:root[data-theme='parque'] .detail-body h2 {
+  font-size: 2.2rem;
+}
+
+:root[data-theme='parque'] .highlight h2 {
+  font-size: 1.6rem;
+}
+
+:root[data-theme='parque'] .world h2 {
+  font-size: 1.5rem;
+}
+
+:root[data-theme='parque'] .card-body h3 {
+  font-size: 1.3rem;
+}
+
+:root[data-theme='parque'] :is(.place-pill, .theme-btn) {
+  color: var(--cream);
+}
+
+/* emblema */
+:root[data-theme='parque'] .seen-counter {
+  background: var(--brand);
+  color: #fff;
+  border: 2px solid var(--cream);
+  border-radius: 999px;
+}
+
+/* placa de trilha */
+:root[data-theme='parque'] .categories {
+  background: #1d3557;
+}
+
+:root[data-theme='parque'] .chip {
+  background: none;
+  border-color: transparent;
+  color: var(--cream);
+  font-size: 1.15rem;
+}
+
+:root[data-theme='parque'] .chip:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+:root[data-theme='parque'] .chip.is-active,
+:root[data-theme='parque'] .chip.is-active:hover {
+  background: var(--accent);
+  color: #1d3557;
+  box-shadow: none;
+}
+
+:root[data-theme='parque'] .chip-count {
+  color: inherit;
+  opacity: 0.75;
+}
+
+:root[data-theme='parque'] .btn {
+  font-size: 1.1rem;
+  padding-block: 0.45rem;
+}
+
+:root[data-theme='parque'] .content {
+  padding-top: 0.9rem;
+}
+
+:root[data-theme='parque'] .card {
+  border: 5px solid var(--cream);
+  box-shadow: 3px 3px 0 #1d3557;
+}
+
+:root[data-theme='parque'] .card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #1d3557;
+}
+
+:root[data-theme='parque'] .card-number {
+  left: 0;
+  top: 0;
+  background: #1d3557;
+  border-radius: 0;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.45rem;
+}
+
+:root[data-theme='parque'] .seen-toggle.is-seen {
+  background: var(--brand);
+  color: #fff;
+}
+
+:root[data-theme='parque'] .tag {
+  background: var(--accent);
+  border: 0;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+}
+
+:root[data-theme='parque'] .card-count {
+  font-size: 1rem;
+  color: var(--brand);
+}
+
+:root[data-theme='parque'] .highlights {
+  padding: 0 6px 6px 0;
+}
+
+:root[data-theme='parque'] .highlight {
+  --ink: var(--cream);
+  --muted: #e3f1ed;
+  background: #2a9d8f;
+  border: 0;
+  color: var(--cream);
+  box-shadow: 4px 4px 0 #1d3557;
+}
+
+:root[data-theme='parque'] .highlight-special {
+  background: #1d3557;
+  box-shadow: 4px 4px 0 #2a9d8f;
+}
+
+:root[data-theme='parque'] .highlight > img {
+  border: 4px solid var(--cream);
+  border-radius: 50%;
+}
+
+:root[data-theme='parque'] .highlight-kicker {
+  color: #f3d67a;
+}
+
+:root[data-theme='parque'] .highlight .btn:not(.btn-primary) {
+  background: none;
+  border-color: var(--cream);
+  color: var(--cream);
+}

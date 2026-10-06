@@ -11,9 +11,16 @@
     "deploy": "npm run build && cd dist && git init -q -b gh-pages && git add -A && git commit -q -m Deploy && git push -f https://github.com/robsonbaioco/bichodex.git gh-pages"
   },
   "dependencies": {
+    "@fontsource/alfa-slab-one": "^5.3.0",
+    "@fontsource/bangers": "^5.3.0",
+    "@fontsource/bebas-neue": "^5.3.0",
+    "@fontsource/caveat": "^5.3.0",
     "@fontsource/cinzel": "^5.3.0",
+    "@fontsource/orbitron": "^5.3.0",
     "@fontsource/permanent-marker": "^5.3.0",
     "@fontsource/press-start-2p": "^5.3.0",
+    "@fontsource/rubik-wet-paint": "^5.3.0",
+    "@fontsource/vt323": "^5.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
