@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "icons": "pwa-assets-generator",
     "deploy": "npm run build && cd dist && git init -q -b gh-pages && git add -A && git commit -q -m Deploy && git push -f https://github.com/robsonbaioco/bichodex.git gh-pages"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.1.2",
     "typescript": "^7.0.2",
     "vite": "^8.3.3"

@@ -26,13 +26,13 @@ export interface Taxon {
   ancestor_ids?: number[]
   default_photo?: Photo | null
   observations_count?: number
+  conservation_status?: { status?: string; status_name?: string; authority?: string } | null
 }
 
 export interface TaxonDetail extends Taxon {
   wikipedia_summary?: string | null
   taxon_photos?: { photo: Photo }[]
   ancestors?: Taxon[]
-  conservation_status?: { status?: string; status_name?: string; authority?: string } | null
 }
 
 export interface SpeciesCount {
@@ -46,14 +46,17 @@ async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   return response.json() as Promise<T>
 }
 
-function areaParams(place: Place, radiusKm: number): URLSearchParams {
-  return new URLSearchParams({
+function areaParams(place: Place, radiusKm: number, threatened = false): URLSearchParams {
+  const params = new URLSearchParams({
     lat: String(place.lat),
     lng: String(place.lng),
     radius: String(radiusKm),
     verifiable: 'true',
     locale: 'pt-BR',
   })
+  // inclui "quase ameaçada" em diante, em listas globais (IUCN) ou regionais
+  if (threatened) params.set('threatened', 'true')
+  return params
 }
 
 export async function fetchSpecies(
@@ -61,6 +64,8 @@ export async function fetchSpecies(
     place: Place
     radiusKm: number
     category: Category
+    /** Só espécies com algum grau de ameaça de extinção. */
+    threatened?: boolean
     page: number
     perPage?: number
     /** Ordem pela quantidade de registros; 'desc' (mais registradas primeiro) é o padrão. */
@@ -68,7 +73,7 @@ export async function fetchSpecies(
   },
   signal?: AbortSignal,
 ): Promise<{ total: number; results: SpeciesCount[] }> {
-  const params = areaParams(opts.place, opts.radiusKm)
+  const params = areaParams(opts.place, opts.radiusKm, opts.threatened)
   params.set('per_page', String(opts.perPage ?? PER_PAGE))
   params.set('page', String(opts.page))
   if (opts.order === 'asc') params.set('order', 'asc')
@@ -85,10 +90,11 @@ export async function fetchSpecies(
 export async function fetchCategoryCounts(
   place: Place,
   radiusKm: number,
+  threatened: boolean,
   signal?: AbortSignal,
 ): Promise<Record<string, number>> {
   const data = await getJson<{ results: { count: number; taxon: { name: string } }[] }>(
-    `${INAT}/observations/iconic_taxa_species_counts?${areaParams(place, radiusKm)}`,
+    `${INAT}/observations/iconic_taxa_species_counts?${areaParams(place, radiusKm, threatened)}`,
     signal,
   )
   return Object.fromEntries(data.results.map((r) => [r.taxon.name, r.count]))

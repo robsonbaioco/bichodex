@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { fetchTaxon, type Photo, type SpeciesCount, type Taxon, type TaxonDetail } from '../api'
 import { categoryOf } from '../categories'
-import { displayName, entryNumber, formatNumber, frequencyLabel } from '../format'
+import { CONSERVATION, displayName, entryNumber, formatNumber, frequencyLabel } from '../format'
 
 const RANKS: Record<string, string> = {
   kingdom: 'Reino',
@@ -10,17 +10,6 @@ const RANKS: Record<string, string> = {
   order: 'Ordem',
   family: 'Família',
   genus: 'Gênero',
-}
-
-const CONSERVATION: Record<string, string> = {
-  LC: 'Pouco preocupante',
-  NT: 'Quase ameaçada',
-  VU: 'Vulnerável',
-  EN: 'Em perigo',
-  CR: 'Criticamente em perigo',
-  EW: 'Extinta na natureza',
-  EX: 'Extinta',
-  DD: 'Dados insuficientes',
 }
 
 function htmlToText(html: string): string {
@@ -35,7 +24,8 @@ interface Props {
   maxCount: number
   seen: boolean
   onToggleSeen: (taxon: Taxon) => void
-  onShare: (taxon: Taxon) => void
+  /** Ausente enquanto não há local definido, já que o cartão de conquista mostra onde foi o avistamento. */
+  onShare?: (taxon: Taxon) => void
   onClose: () => void
 }
 
@@ -138,7 +128,7 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, onToggleSeen,
                 >
                   {seen ? '✓ Avistado' : 'Marcar como avistado'}
                 </button>
-                {seen && (
+                {seen && onShare && (
                   <button className="btn" onClick={() => onShare(taxon)}>
                     Compartilhar conquista
                   </button>

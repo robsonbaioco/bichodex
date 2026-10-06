@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { SpeciesCount } from '../api'
 import { categoryOf } from '../categories'
-import { displayName, entryNumber, formatNumber } from '../format'
+import { displayName, entryNumber, formatNumber, riskLabel } from '../format'
 
 interface Props {
   entry: SpeciesCount
@@ -14,6 +14,7 @@ interface Props {
 export function SpeciesCard({ entry, number, seen, onOpen, onToggleSeen }: Props) {
   const { taxon, count } = entry
   const category = categoryOf(taxon)
+  const risk = riskLabel(taxon)
   const photo = taxon.default_photo?.medium_url ?? taxon.default_photo?.square_url
 
   return (
@@ -28,6 +29,7 @@ export function SpeciesCard({ entry, number, seen, onOpen, onToggleSeen }: Props
             </span>
           )}
           <span className="card-number">{entryNumber(number)}</span>
+          {risk && <span className="card-risk">⚠ {risk}</span>}
         </div>
         <div className="card-body">
           <h3>{displayName(taxon)}</h3>

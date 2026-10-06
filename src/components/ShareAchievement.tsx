@@ -133,7 +133,7 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
   const downloadUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image])
   useEffect(() => () => void (downloadUrl && URL.revokeObjectURL(downloadUrl)), [downloadUrl])
 
-  const text = `Avistei ${name} (${taxon.name}) em ${place}! É a minha ${ordinal}ª espécie no #Bichodex 🐾\nDescubra as espécies perto de você: ${SITE_URL}`
+  const text = `Avistei ${name} (${taxon.name}) em ${place}! É a minha ${ordinal}ª espécie no #Bichodex 🐾\nVeja a ficha: ${SITE_URL}#/especie/${taxon.id}`
   const canShareFile = !!file && !!navigator.canShare?.({ files: [file] })
 
   async function share() {
@@ -255,17 +255,6 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
               </button>
             )}
           </div>
-
-          <p className="fineprint share-links">
-            Ou baixe a imagem e publique com o texto pronto:{' '}
-            <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
-              WhatsApp
-            </a>
-            {' · '}
-            <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
-              X
-            </a>
-          </p>
         </div>
       </section>
     </div>

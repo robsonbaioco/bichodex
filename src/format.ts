@@ -9,6 +9,24 @@ export function displayName(taxon: Taxon): string {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
+/** Categorias da Lista Vermelha (IUCN). */
+export const CONSERVATION: Record<string, string> = {
+  LC: 'Pouco preocupante',
+  NT: 'Quase ameaçada',
+  VU: 'Vulnerável',
+  EN: 'Em perigo',
+  CR: 'Criticamente em perigo',
+  EW: 'Extinta na natureza',
+  EX: 'Extinta',
+  DD: 'Dados insuficientes',
+}
+
+/** Rótulo do grau de ameaça, ou null quando a espécie não está em risco (ou o status não é da IUCN). */
+export function riskLabel(taxon: Taxon): string | null {
+  const status = taxon.conservation_status?.status?.toUpperCase()
+  return status && status !== 'LC' && status !== 'DD' ? (CONSERVATION[status] ?? null) : null
+}
+
 export interface Rarity {
   id: string
   label: string

@@ -987,7 +987,91 @@ select {
   color: #fff;
 }
 
-.share-links {
+/* ---------- Risco de extinção ---------- */
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toggle:has(input:checked) {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface));
+}
+
+.toggle input {
+  accent-color: var(--danger);
+  margin: 0;
+}
+
+.card-risk {
+  position: absolute;
+  left: 0.4rem;
+  bottom: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: #b3392f;
+  color: #fff;
+}
+
+/* ---------- Convite para instalar ---------- */
+
+.install {
+  position: fixed;
+  z-index: 15;
+  left: 16px;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  max-width: 520px;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
+  animation: slide-up 0.35s both;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+.install img {
+  flex: none;
+  border-radius: 10px;
+}
+
+.install-text {
+  flex: 1;
+  min-width: 160px;
+  display: grid;
+}
+
+.install-text span {
   color: var(--muted);
-  text-align: center;
+  font-size: 0.85rem;
+}
+
+.install-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
 }
