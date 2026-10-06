@@ -1,0 +1,14 @@
+{
+  "name": "Bichodex",
+  "short_name": "Bichodex",
+  "description": "Catálogo das espécies registradas perto de você.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c1512",
+  "theme_color": "#0f7a4d",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
