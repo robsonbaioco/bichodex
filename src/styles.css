@@ -1075,3 +1075,114 @@ select {
   gap: 8px;
   margin-left: auto;
 }
+
+/* ---------- Destaques do dia ---------- */
+
+.highlights {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .highlights:has(.highlight + .highlight) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.highlight {
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.8rem;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--radius);
+}
+
+.highlight-special {
+  border-left-color: var(--brand);
+}
+
+.highlight > img,
+.highlight-emoji {
+  flex: none;
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.highlight-emoji {
+  display: grid;
+  place-items: center;
+  font-size: 3rem;
+}
+
+.highlight-body {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+
+.highlight-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.highlight h2 {
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.highlight-text {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.highlight-text b {
+  color: var(--ink);
+}
+
+.highlight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.highlight-actions .btn {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .highlight > img,
+  .highlight-emoji {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+}
+
+/* ---------- Busca mundial ---------- */
+
+.world {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1.5px dashed var(--line);
+}
+
+.world h2 {
+  font-size: 1.1rem;
+}
+
+.world > p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0.2rem 0 0.9rem;
+}

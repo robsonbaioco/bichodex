@@ -46,3 +46,19 @@ export const RARITIES: Rarity[] = [
 export function frequencyLabel(count: number): string {
   return (RARITIES.find((rarity) => count >= rarity.min) ?? RARITIES[RARITIES.length - 1]).label
 }
+
+export function htmlToText(html: string): string {
+  return new DOMParser().parseFromString(html, 'text/html').body.textContent ?? ''
+}
+
+/** Primeiras frases de um texto, até o limite de caracteres. */
+export function excerpt(text: string, max = 190): string {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (clean.length <= max) return clean
+  const cut = clean.slice(0, max)
+  const sentenceEnd = cut.lastIndexOf('. ')
+  return sentenceEnd > max * 0.5 ? cut.slice(0, sentenceEnd + 1) : `${cut.slice(0, cut.lastIndexOf(' '))}…`
+}
+
+/** Onde a pessoa viu a espécie. */
+export type SeenWhere = 'wild' | 'zoo'

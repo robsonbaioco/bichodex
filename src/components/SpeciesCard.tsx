@@ -1,11 +1,13 @@
 import type { CSSProperties } from 'react'
-import type { SpeciesCount } from '../api'
+import type { Taxon } from '../api'
 import { categoryOf } from '../categories'
 import { displayName, entryNumber, formatNumber, riskLabel } from '../format'
 
 interface Props {
-  entry: SpeciesCount
-  number: number
+  /** Sem `count`, a espécie é de fora da região (resultado da busca mundial). */
+  entry: { taxon: Taxon; count?: number }
+  /** Posição no ranking regional; ausente para espécies de fora da região. */
+  number?: number
   seen: boolean
   onOpen: () => void
   onToggleSeen: () => void
@@ -28,7 +30,7 @@ export function SpeciesCard({ entry, number, seen, onOpen, onToggleSeen }: Props
               {category.emoji}
             </span>
           )}
-          <span className="card-number">{entryNumber(number)}</span>
+          {number != null && <span className="card-number">{entryNumber(number)}</span>}
           {risk && <span className="card-risk">⚠ {risk}</span>}
         </div>
         <div className="card-body">
@@ -38,9 +40,15 @@ export function SpeciesCard({ entry, number, seen, onOpen, onToggleSeen }: Props
             <span className="tag">
               {category.emoji} {category.label}
             </span>
-            <span className="card-count" title="Registros na região">
-              {formatNumber(count)}×
-            </span>
+            {count != null ? (
+              <span className="card-count" title="Registros na região">
+                {formatNumber(count)}×
+              </span>
+            ) : (
+              <span className="card-count" title="Sem registros na sua região">
+                🌍
+              </span>
+            )}
           </div>
         </div>
       </a>

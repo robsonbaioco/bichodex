@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { PER_PAGE, fetchCategoryCounts, fetchSpecies, type Place, type SpeciesCount, type Taxon } from './api'
-import { CATEGORIES } from './categories'
+import {
+  PER_PAGE,
+  fetchCategoryCounts,
+  fetchSpecies,
+  searchWorldSpecies,
+  type Place,
+  type SpeciesCount,
+  type Taxon,
+} from './api'
+import { CATEGORIES, type Category } from './categories'
+import { Highlights } from './components/Highlights'
 import { LocationPicker } from './components/LocationPicker'
 import { ShareAchievement } from './components/ShareAchievement'
 import { SpeciesCard } from './components/SpeciesCard'
 import { SpeciesDetail } from './components/SpeciesDetail'
-import { RARITIES, formatNumber, type Rarity } from './format'
+import { RARITIES, formatNumber, type Rarity, type SeenWhere } from './format'
+import type { SpecialDay } from './specialDays'
 import { load, save } from './storage'
 
 const RADII = [5, 10, 25, 50, 100]
@@ -44,6 +54,11 @@ export default function App() {
   const [place, setPlace] = useState<Place | null>(() => load('place', null))
   const [radius, setRadius] = useState<number>(() => load('radius', 10))
   const [seen, setSeen] = useState<number[]>(() => load('seen', []))
+  /** Entre as avistadas, as que foram vistas no zoológico (as demais, na natureza). */
+  const [zooIds, setZooIds] = useState<number[]>(() => load('zoo', []))
+  /** Grupo de uma data comemorativa usado como filtro, no lugar de uma categoria fixa. */
+  const [special, setSpecial] = useState<Category | null>(null)
+  const [worldResults, setWorldResults] = useState<Taxon[]>([])
   const [categoryId, setCategoryId] = useState('all')
   const [query, setQuery] = useState('')
   const [changingPlace, setChangingPlace] = useState(false)
@@ -62,7 +77,7 @@ export default function App() {
   const openedHere = useRef(false)
   const sentinel = useRef<HTMLDivElement>(null)
 
-  const category = CATEGORIES.find((c) => c.id === categoryId) ?? CATEGORIES[0]
+  const category: Category = special ?? CATEGORIES.find((c) => c.id === categoryId) ?? CATEGORIES[0]
   const seenSet = useMemo(() => new Set(seen), [seen])
 
   // Com filtro de raridade as páginas são maiores, para atravessar rápido as espécies fora da faixa;
@@ -80,6 +95,7 @@ export default function App() {
   useEffect(() => save('place', place), [place])
   useEffect(() => save('radius', radius), [radius])
   useEffect(() => save('seen', seen), [seen])
+  useEffect(() => save('zoo', zooIds), [zooIds])
 
   useEffect(() => {
     const onHashChange = () => setSelectedId(selectedFromHash())
@@ -162,6 +178,24 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [query])
 
+  // A mesma busca também consulta o catálogo mundial, para achar espécies sem registro na área
+  // (vistas no zoológico ou em viagem, por exemplo).
+  useEffect(() => {
+    const term = query.trim()
+    setWorldResults([])
+    if (term.length < 3) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      searchWorldSpecies(term, controller.signal)
+        .then(setWorldResults)
+        .catch(() => {})
+    }, 500)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [query])
+
   useEffect(() => {
     if (searchAll && hasMore && list.status === 'done') loadMore()
   }, [searchAll, hasMore, list.status, loadMore])
@@ -188,14 +222,33 @@ export default function App() {
       )
   }, [list.items, query, rarity, numberAt])
 
+  function setWhere(id: number, where: SeenWhere) {
+    setZooIds((current) => {
+      const others = current.filter((x) => x !== id)
+      return where === 'zoo' ? [...others, id] : others
+    })
+  }
+
   // Marcar abre o cartão de conquista; desmarcar apenas remove.
-  function toggleSeen(taxon: Taxon) {
+  function toggleSeen(taxon: Taxon, where: SeenWhere = 'wild') {
     if (seenSet.has(taxon.id)) {
       setSeen((current) => current.filter((id) => id !== taxon.id))
+      setWhere(taxon.id, 'wild')
     } else {
       setSeen((current) => [...current, taxon.id])
+      setWhere(taxon.id, where)
       if (place) setSharing(taxon)
     }
+  }
+
+  function openSpecies(id: number) {
+    openedHere.current = true
+    location.hash = `#/especie/${id}`
+  }
+
+  function exploreGroup(day: SpecialDay) {
+    setSpecial({ id: 'special', label: day.group, emoji: day.emoji, color: '#0f7a4d', taxonId: day.taxonId })
+    setQuery('')
   }
 
   const closeSharing = useCallback(() => setSharing(null), [])
@@ -216,6 +269,13 @@ export default function App() {
     setQuery('')
   }
 
+  // só depois de a busca regional terminar, para uma espécie não aparecer aqui e depois "mudar" para a lista
+  const worldOnly = useMemo(() => {
+    if (hasMore || list.status !== 'done') return []
+    const regional = new Set(list.items.map((item) => item.taxon.id))
+    return worldResults.filter((taxon) => !regional.has(taxon.id))
+  }, [worldResults, list.items, list.status, hasMore])
+
   const selectedIndex = selectedId == null ? -1 : list.items.findIndex((item) => item.taxon.id === selectedId)
 
   // Fora do retorno principal porque um link de espécie compartilhado abre a ficha mesmo antes de haver local.
@@ -226,6 +286,7 @@ export default function App() {
       number={selectedIndex >= 0 ? numberAt(selectedIndex) : undefined}
       maxCount={topCount}
       seen={seenSet.has(selectedId)}
+      where={zooIds.includes(selectedId) ? 'zoo' : 'wild'}
       onToggleSeen={toggleSeen}
       onShare={place ? setSharing : undefined}
       onClose={closeDetail}
@@ -276,19 +337,32 @@ export default function App() {
 
       <div className="layout">
         <nav className="categories" aria-label="Categorias">
+          {special && (
+            <button
+              className="chip is-active"
+              style={{ '--c': special.color } as CSSProperties}
+              onClick={() => setSpecial(null)}
+              title="Remover este filtro"
+            >
+              <span aria-hidden="true">{special.emoji}</span>
+              <span className="chip-label">{special.label}</span>
+              <span className="chip-count">✕</span>
+            </button>
+          )}
           {CATEGORIES.map((c) => {
-            const count = c.id === categoryId && list.page > 0 ? list.total : c.iconic ? counts[c.iconic] : undefined
+            const count = c.id === category.id && list.page > 0 ? list.total : c.iconic ? counts[c.iconic] : undefined
             return (
               <button
                 key={c.id}
-                className={`chip${c.id === categoryId ? ' is-active' : ''}`}
+                className={`chip${c.id === category.id ? ' is-active' : ''}`}
                 style={{ '--c': c.color } as CSSProperties}
                 onClick={() => {
                   setCategoryId(c.id)
+                  setSpecial(null)
                   setQuery('')
                   window.scrollTo({ top: 0 })
                 }}
-                aria-pressed={c.id === categoryId}
+                aria-pressed={c.id === category.id}
               >
                 <span aria-hidden="true">{c.emoji}</span>
                 <span className="chip-label">{c.label}</span>
@@ -299,6 +373,18 @@ export default function App() {
         </nav>
 
         <main className="content">
+          {!filtering && !special && (
+            <Highlights
+              place={place}
+              radius={radius}
+              seen={seenSet}
+              onOpen={openSpecies}
+              onMarkSeen={toggleSeen}
+              onShare={setSharing}
+              onExploreGroup={exploreGroup}
+            />
+          )}
+
           <div className="toolbar">
             <input
               type="search"
@@ -392,6 +478,24 @@ export default function App() {
             )}
           </div>
 
+          {filtering && worldOnly.length > 0 && (
+            <section className="world">
+              <h2>Fora da sua região</h2>
+              <p>Espécies sem registro na área. Viu uma no zoológico ou em uma viagem? Marque como avistada.</p>
+              <div className="grid">
+                {worldOnly.map((taxon) => (
+                  <SpeciesCard
+                    key={taxon.id}
+                    entry={{ taxon }}
+                    seen={seenSet.has(taxon.id)}
+                    onOpen={() => (openedHere.current = true)}
+                    onToggleSeen={() => toggleSeen(taxon, 'zoo')}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           <footer className="footer">
             Dados e fotos:{' '}
             <a href="https://www.inaturalist.org" target="_blank" rel="noreferrer">
@@ -409,6 +513,8 @@ export default function App() {
           taxon={sharing}
           place={place.label}
           ordinal={seen.indexOf(sharing.id) + 1 || seen.length}
+          where={zooIds.includes(sharing.id) ? 'zoo' : 'wild'}
+          onWhereChange={(where) => setWhere(sharing.id, where)}
           onClose={closeSharing}
         />
       )}

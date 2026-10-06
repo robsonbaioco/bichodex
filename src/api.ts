@@ -125,3 +125,40 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
     label: [r.name, r.admin1, r.country].filter(Boolean).join(', '),
   }))
 }
+
+const ANIMAL_GROUPS = 'Mammalia,Aves,Reptilia,Amphibia,Actinopterygii,Insecta,Arachnida,Mollusca,Animalia'
+
+/**
+ * Animais da área que servem de "bicho do dia": com foto, nome popular e registros suficientes
+ * para haver chance real de encontrá-los.
+ */
+export async function fetchDailyCandidates(place: Place, radiusKm: number, signal?: AbortSignal): Promise<Taxon[]> {
+  const params = areaParams(place, radiusKm)
+  params.set('iconic_taxa', ANIMAL_GROUPS)
+  params.set('per_page', '200')
+  const data = await getJson<{ results: SpeciesCount[] }>(`${INAT}/observations/species_counts?${params}`, signal)
+  const presentable = data.results.filter((r) => r.taxon.default_photo && r.taxon.preferred_common_name)
+  const findable = presentable.filter((r) => r.count >= 5)
+  return (findable.length ? findable : presentable).map((r) => r.taxon)
+}
+
+/** Quantas espécies de um grupo (táxon) têm registro na área. */
+export async function countSpeciesInArea(
+  place: Place,
+  radiusKm: number,
+  taxonId: number,
+  signal?: AbortSignal,
+): Promise<number> {
+  const params = areaParams(place, radiusKm)
+  params.set('taxon_id', String(taxonId))
+  params.set('per_page', '0')
+  const data = await getJson<{ total_results: number }>(`${INAT}/observations/species_counts?${params}`, signal)
+  return data.total_results
+}
+
+/** Busca espécies pelo nome no catálogo mundial, sem restrição de área. */
+export async function searchWorldSpecies(query: string, signal?: AbortSignal): Promise<Taxon[]> {
+  const params = new URLSearchParams({ q: query, rank: 'species', is_active: 'true', per_page: '12', locale: 'pt-BR' })
+  const data = await getJson<{ results: Taxon[] }>(`${INAT}/taxa?${params}`, signal)
+  return data.results
+}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchTaxon, type Photo, type Taxon } from '../api'
 import { categoryOf } from '../categories'
-import { displayName } from '../format'
+import { displayName, type SeenWhere } from '../format'
 import { CARD_SIZES, SITE_URL, drawCard, loadImage, type CardFormat } from '../shareCard'
 
 type Source = 'catalog' | 'own'
@@ -31,10 +31,12 @@ interface Props {
   place: string
   /** Posição desta espécie entre as avistadas pela pessoa. */
   ordinal: number
+  where: SeenWhere
+  onWhereChange: (where: SeenWhere) => void
   onClose: () => void
 }
 
-export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
+export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, onClose }: Props) {
   /** Fotos do catálogo que podem ilustrar o cartão; null enquanto a lista é consultada. */
   const [catalogPhotos, setCatalogPhotos] = useState<Photo[] | null>(null)
   const [catalogPhoto, setCatalogPhoto] = useState<Photo | null>(null)
@@ -48,6 +50,7 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
 
   const name = displayName(taxon)
   const category = categoryOf(taxon)
+  const atZoo = where === 'zoo'
 
   useEffect(() => {
     // captura antes da ficha da espécie, que também fecha com Esc
@@ -113,7 +116,8 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
         categoryLabel: category.label,
         categoryEmoji: category.emoji,
         color: category.color,
-        place,
+        place: atZoo ? 'No zoológico' : place,
+        seal: atZoo ? 'AVISTADA NO ZOOLÓGICO!' : 'ESPÉCIE AVISTADA!',
         ordinal,
         credit: usingCatalog && photo ? catalogPhoto?.attribution : undefined,
         photo,
@@ -126,14 +130,14 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
     return () => {
       cancelled = true
     }
-  }, [catalogReady, source, ownPhoto, format, catalogUrl, catalogPhoto, taxon, name, category, place, ordinal])
+  }, [catalogReady, source, ownPhoto, format, catalogUrl, catalogPhoto, taxon, name, category, place, atZoo, ordinal])
 
   const fileName = `bichodex-${slug(name) || taxon.id}.jpg`
   const file = useMemo(() => image && new File([image], fileName, { type: 'image/jpeg' }), [image, fileName])
   const downloadUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image])
   useEffect(() => () => void (downloadUrl && URL.revokeObjectURL(downloadUrl)), [downloadUrl])
 
-  const text = `Avistei ${name} (${taxon.name}) em ${place}! É a minha ${ordinal}ª espécie no #Bichodex 🐾\nVeja a ficha: ${SITE_URL}#/especie/${taxon.id}`
+  const text = `Avistei ${name} (${taxon.name}) ${atZoo ? 'no zoológico' : `em ${place}`}! É a minha ${ordinal}ª espécie no #Bichodex 🐾\nVeja a ficha: ${SITE_URL}#/especie/${taxon.id}`
   const canShareFile = !!file && !!navigator.canShare?.({ files: [file] })
 
   async function share() {
@@ -173,6 +177,15 @@ export function ShareAchievement({ taxon, place, ordinal, onClose }: Props) {
             height={CARD_SIZES.feed.height}
             aria-label={`Cartão de conquista: ${name}`}
           />
+
+          <div className="segmented" role="group" aria-label="Onde você viu">
+            <button className={atZoo ? '' : 'is-active'} onClick={() => onWhereChange('wild')}>
+              🌳 Na natureza
+            </button>
+            <button className={atZoo ? 'is-active' : ''} onClick={() => onWhereChange('zoo')}>
+              🏛️ No zoológico
+            </button>
+          </div>
 
           <div className="segmented" role="group" aria-label="Foto do cartão">
             <button

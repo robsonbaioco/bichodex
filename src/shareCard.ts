@@ -18,6 +18,8 @@ export interface CardData {
   categoryEmoji: string
   color: string
   place: string
+  /** Texto do selo sobre a foto (ex.: "ESPÉCIE AVISTADA!"). */
+  seal: string
   /** Quantas espécies a pessoa já avistou, contando esta. */
   ordinal: number
   credit?: string
@@ -134,7 +136,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
 
   // Selo, sobreposto à borda inferior da foto
   const photoBottom = photoTop + photoHeight
-  const seal = '✓  ESPÉCIE AVISTADA!'
+  const seal = `✓  ${data.seal}`
   ctx.font = `800 40px ${FONT}`
   const sealWidth = ctx.measureText(seal).width + 72
   ctx.fillStyle = YELLOW

@@ -1,7 +1,15 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { fetchTaxon, type Photo, type SpeciesCount, type Taxon, type TaxonDetail } from '../api'
 import { categoryOf } from '../categories'
-import { CONSERVATION, displayName, entryNumber, formatNumber, frequencyLabel } from '../format'
+import {
+  CONSERVATION,
+  displayName,
+  entryNumber,
+  formatNumber,
+  frequencyLabel,
+  htmlToText,
+  type SeenWhere,
+} from '../format'
 
 const RANKS: Record<string, string> = {
   kingdom: 'Reino',
@@ -12,10 +20,6 @@ const RANKS: Record<string, string> = {
   genus: 'Gênero',
 }
 
-function htmlToText(html: string): string {
-  return new DOMParser().parseFromString(html, 'text/html').body.textContent ?? ''
-}
-
 interface Props {
   id: number
   /** Entrada da lista regional, quando a espécie já foi carregada nela. */
@@ -23,13 +27,15 @@ interface Props {
   number?: number
   maxCount: number
   seen: boolean
+  /** Onde foi o avistamento, quando a espécie já está marcada. */
+  where?: SeenWhere
   onToggleSeen: (taxon: Taxon) => void
   /** Ausente enquanto não há local definido, já que o cartão de conquista mostra onde foi o avistamento. */
   onShare?: (taxon: Taxon) => void
   onClose: () => void
 }
 
-export function SpeciesDetail({ id, entry, number, maxCount, seen, onToggleSeen, onShare, onClose }: Props) {
+export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onToggleSeen, onShare, onClose }: Props) {
   const [detail, setDetail] = useState<TaxonDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const [photoIndex, setPhotoIndex] = useState(0)
@@ -126,7 +132,7 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, onToggleSeen,
                   onClick={() => onToggleSeen(taxon)}
                   aria-pressed={seen}
                 >
-                  {seen ? '✓ Avistado' : 'Marcar como avistado'}
+                  {seen ? (where === 'zoo' ? '✓ Avistado no zoológico' : '✓ Avistado') : 'Marcar como avistado'}
                 </button>
                 {seen && onShare && (
                   <button className="btn" onClick={() => onShare(taxon)}>
