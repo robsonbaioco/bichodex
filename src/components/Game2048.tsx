@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchDailyCandidates, type Place, type Taxon } from '../api'
 import { displayName } from '../format'
-import { applyMove, newGame, SIZE, type Direction, type Mode, type GameState, type Tile } from '../game2048'
+import { applyMove, newGame, SIZE, GOAL, type Direction, type Mode, type GameState } from '../game2048'
 import { load, save } from '../storage'
 
 interface Best {
@@ -48,9 +48,9 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
   const [game, setGame] = useState<GameState | null>(null)
   const [animals, setAnimals] = useState<Taxon[]>([])
   const [best, setBest] = useState<Best>(() => load('game2048', { score: 0, maxTile: 0 }))
-  /** Foto sorteada para cada bloco, pelo id do bloco. */
-  const photos = useRef(new Map<number, string>())
-  const names = useRef(new Map<number, string>())
+  /** Animal (foto + nome) fixo para cada valor de bloco: blocos com o mesmo número mostram o mesmo animal. */
+  const byValue = useRef(new Map<number, { url: string; name: string }>())
+  const [photosReady, setPhotosReady] = useState(true)
   const board = useRef<HTMLDivElement>(null)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
@@ -65,22 +65,51 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
 
   useEffect(() => save('game2048', best), [best])
 
-  function photoFor(tile: Tile): string | undefined {
-    const known = photos.current.get(tile.id)
+  // Sorteia um animal para cada valor de bloco e pré-carrega as fotos,
+  // para que o bloco já apareça com a foto, sem atraso de carregamento.
+  useEffect(() => {
+    const map = new Map<number, { url: string; name: string }>()
+    const pool = animals
+      .filter((a) => a.default_photo?.medium_url || a.default_photo?.square_url)
+      .map((a) => ({ url: a.default_photo!.medium_url ?? a.default_photo!.square_url!, name: displayName(a) }))
+      .sort(() => Math.random() - 0.5)
+    if (!pool.length) {
+      byValue.current = map
+      setPhotosReady(true)
+      return
+    }
+    const urls = new Set<string>()
+    for (let value = 2; value <= GOAL; value *= 2) {
+      const pick = pool[(Math.log2(value) - 1) % pool.length]
+      map.set(value, pick)
+      urls.add(pick.url)
+    }
+    byValue.current = map
+    let pending = urls.size
+    setPhotosReady(false)
+    const done = () => {
+      pending -= 1
+      if (pending <= 0) setPhotosReady(true)
+    }
+    for (const url of urls) {
+      const img = new Image()
+      img.onload = done
+      img.onerror = done
+      img.src = url
+    }
+  }, [animals])
+
+  function animalFor(value: number): { url: string; name: string } | undefined {
+    const known = byValue.current.get(value)
     if (known) return known
-    const withPhoto = animals.filter((a) => a.default_photo?.medium_url || a.default_photo?.square_url)
-    if (!withPhoto.length) return undefined
-    const pick = withPhoto[Math.floor(Math.random() * withPhoto.length)]
-    const url = pick.default_photo!.medium_url ?? pick.default_photo!.square_url!
-    photos.current.set(tile.id, url)
-    names.current.set(tile.id, displayName(pick))
-    return url
+    if (!byValue.current.size) return undefined
+    // Valores acima de 2048 reutilizam os animais já sorteados.
+    const all = [...byValue.current.values()]
+    return all[(Math.log2(value) - 1) % all.length]
   }
 
   const start = useCallback((m: Mode) => {
     setMode(m)
-    photos.current.clear()
-    names.current.clear()
     setGame(newGame(m))
   }, [])
 
@@ -91,10 +120,6 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
         if (current.won && current.mode === 'normal') return current
         const next = applyMove(current, dir)
         if (!next) return current
-        // limpa fotos de blocos que sumiram (fundidos)
-        const alive = new Set(next.tiles.map((t) => t.id))
-        for (const id of [...photos.current.keys()]) if (!alive.has(id)) photos.current.delete(id)
-        for (const id of [...names.current.keys()]) if (!alive.has(id)) names.current.delete(id)
         const maxTile = Math.max(...next.tiles.map((t) => t.value))
         setBest((b) => (next.score > b.score || maxTile > b.maxTile ? { score: Math.max(b.score, next.score), maxTile: Math.max(b.maxTile, maxTile) } : b))
         return next
@@ -141,12 +166,13 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
           foto de um animal registrado dentro do seu raio, em marca-d'água.
         </p>
         {animals.length === 0 && <p className="fineprint">Buscando animais da região para ilustrar os blocos…</p>}
+        {animals.length > 0 && !photosReady && <p className="fineprint">Carregando as fotos dos animais…</p>}
         <div className="g2048-modes">
-          <button className="btn btn-primary btn-lg" onClick={() => start('normal')}>
+          <button className="btn btn-primary btn-lg" onClick={() => start('normal')} disabled={!photosReady}>
             🏆 Modo normal
             <small>Vença ao chegar em 2048</small>
           </button>
-          <button className="btn btn-lg" onClick={() => start('infinito')}>
+          <button className="btn btn-lg" onClick={() => start('infinito')} disabled={!photosReady}>
             ♾️ Modo infinito
             <small>Continue até não haver mais movimentos</small>
           </button>
@@ -194,7 +220,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
           <div key={i} className="g2048-cell" />
         ))}
         {game.tiles.map((tile) => {
-          const photo = photoFor(tile)
+          const info = animalFor(tile.value)
           return (
             <div
               key={tile.id}
@@ -205,9 +231,9 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
                 background: tileColor(tile.value),
                 color: tile.value <= 4 ? '#776e65' : '#f9f6f2',
               }}
-              title={names.current.get(tile.id)}
+              title={info?.name}
             >
-              {photo && <span className="g2048-photo" style={{ backgroundImage: `url(${photo})` }} aria-hidden="true" />}
+              {info && <span className="g2048-photo" style={{ backgroundImage: `url(${info.url})` }} aria-hidden="true" />}
               <span className="g2048-value">{tile.value}</span>
             </div>
           )
