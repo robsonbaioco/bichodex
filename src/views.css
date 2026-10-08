@@ -705,3 +705,237 @@
 :root[data-theme='parque'] .page-head h2 {
   font-size: 2rem;
 }
+
+/* ---------- Jogos ---------- */
+
+.games-list h2 {
+  margin: 0 0 0.75rem;
+}
+
+.game-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.6rem;
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--rad);
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.game-card:hover {
+  border-color: var(--brand);
+}
+
+.game-card .game-emoji {
+  font-size: 1.8rem;
+}
+
+.game-card > span:nth-child(2) {
+  flex: 1;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.game-card small {
+  color: var(--muted);
+}
+
+/* ---------- Bicho 2048 ---------- */
+
+.g2048-intro {
+  max-width: 30rem;
+  margin: 1rem auto;
+  text-align: center;
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+}
+
+.g2048-modes {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.g2048-modes .btn {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 1rem;
+}
+
+.g2048-modes .btn small {
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.g2048 {
+  --g2048-gap: clamp(5px, 1.5vw, 10px);
+  max-width: 28rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.g2048-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.g2048-score {
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--rad);
+  padding: 0.25rem 0.6rem;
+  display: grid;
+  line-height: 1.15;
+}
+
+.g2048-score span {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.g2048-mode-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.g2048-bar .btn {
+  margin-left: auto;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.g2048-bar .btn + .btn {
+  margin-left: 0;
+}
+
+.g2048-board {
+  --g2048-cell: calc((100% - var(--g2048-gap) * 3) / 4);
+  position: relative;
+  aspect-ratio: 1;
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--rad);
+  padding: var(--g2048-gap);
+  touch-action: none;
+  user-select: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: var(--g2048-gap);
+}
+
+.g2048-cell {
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  border-radius: calc(var(--rad) / 2);
+}
+
+.g2048-tile {
+  position: absolute;
+  width: var(--g2048-cell);
+  height: var(--g2048-cell);
+  margin: var(--g2048-gap) 0 0 var(--g2048-gap);
+  border-radius: calc(var(--rad) / 2);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: clamp(1.4rem, 6.5vw, 2.4rem);
+  overflow: hidden;
+  transition: top 90ms ease, left 90ms ease;
+}
+
+.g2048-tile .g2048-photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.g2048-tile .g2048-value {
+  position: relative;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+
+.g2048-tile.is-new {
+  animation: g2048-pop 140ms ease;
+}
+
+.g2048-tile.is-merged {
+  animation: g2048-pop 180ms ease;
+}
+
+@keyframes g2048-pop {
+  0% {
+    scale: 0.6;
+  }
+  60% {
+    scale: 1.1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+.g2048-over {
+  position: absolute;
+  inset: 0;
+  margin: var(--g2048-gap);
+  border-radius: calc(var(--rad) / 2);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.6rem;
+  text-align: center;
+  z-index: 2;
+}
+
+.g2048-over strong {
+  font-size: 1.3rem;
+}
+
+.g2048-over p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.g2048-pad {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .g2048-pad {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+  }
+
+  .g2048-pad > div {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .g2048-pad .btn {
+    min-width: 3.4rem;
+    padding: 0.55rem 0;
+    font-size: 1.15rem;
+  }
+}
+
+.g2048-tip {
+  text-align: center;
+}

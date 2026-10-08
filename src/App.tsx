@@ -11,6 +11,7 @@ import {
 import { CATEGORIES, type Category } from './categories'
 import { Deck } from './components/Deck'
 import { Dex } from './components/Dex'
+import { Games } from './components/Games'
 import { Highlights } from './components/Highlights'
 import { LocationPicker } from './components/LocationPicker'
 import { Missions } from './components/Missions'
@@ -28,19 +29,20 @@ import { applyTheme, loadIntensity, loadTheme, type Intensity, type ThemeId } fr
 // o mapa traz uma biblioteca grande: só é baixado quando a aba é aberta
 const MapView = lazy(() => import('./components/MapView'))
 
-type View = 'explorar' | 'mapa' | 'dex' | 'missoes'
+type View = 'explorar' | 'mapa' | 'dex' | 'missoes' | 'jogos'
 
 const TABS: { id: View; label: string; emoji: string }[] = [
   { id: 'explorar', label: 'Explorar', emoji: '🔎' },
   { id: 'mapa', label: 'Mapa', emoji: '🗺️' },
   { id: 'dex', label: 'Minha dex', emoji: '📖' },
   { id: 'missoes', label: 'Missões', emoji: '🎯' },
+  { id: 'jogos', label: 'Jogos', emoji: '🎮' },
 ]
 
 /** Aba indicada pelo endereço; nulo quando o endereço é o de uma ficha, que abre por cima da aba atual. */
 function viewFromHash(): View | null {
   if (location.hash.length <= 1) return 'explorar'
-  const match = location.hash.match(/^#\/(explorar|mapa|dex|missoes)$/)
+  const match = location.hash.match(/^#\/(explorar|mapa|dex|missoes|jogos)$/)
   return match ? (match[1] as View) : null
 }
 
@@ -659,6 +661,7 @@ export default function App() {
               onStartDeck={() => setDeckOpen(true)}
             />
           )}
+          {view === 'jogos' && <Games place={place} radius={radius} />}
           {view === 'missoes' && (
             <Missions
               progress={progress}
