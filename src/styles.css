@@ -616,15 +616,25 @@ select {
   border-radius: 50%;
   border: 2px solid #fff;
   background: rgb(0 0 0 / 0.45);
-  color: transparent;
+  /* visível mesmo sem passar o mouse: no celular não há hover e o botão passava despercebido */
+  color: rgb(255 255 255 / 0.6);
   font-weight: 800;
   display: grid;
   place-items: center;
   padding: 0;
+  transition: transform 0.12s ease;
+}
+
+/* área de toque maior que o círculo desenhado */
+.seen-toggle::after {
+  content: '';
+  position: absolute;
+  inset: -0.4rem;
 }
 
 .seen-toggle:hover {
-  color: rgb(255 255 255 / 0.7);
+  color: #fff;
+  transform: scale(1.08);
 }
 
 .seen-toggle.is-seen {
@@ -1224,7 +1234,8 @@ select {
   border-top: var(--bw) dashed var(--line);
 }
 
-.world h2 {
+.world h2,
+.backup h2 {
   font-size: 1.1rem;
 }
 

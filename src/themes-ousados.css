@@ -683,6 +683,7 @@
 }
 
 :root[data-theme='terminal'] .seen-toggle {
+  color: var(--muted);
   border-radius: 0;
   border: 1px solid var(--ink);
   background: var(--bg);

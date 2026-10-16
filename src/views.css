@@ -194,6 +194,53 @@
   box-shadow: none;
 }
 
+.map-popup-actions {
+  display: grid;
+  gap: 0.3rem;
+}
+
+/* no mapa as cores são fixas, pois o balão do Leaflet é sempre claro */
+.map-popup .btn:not(:last-child) {
+  background: #fff;
+  color: #0b5e3b;
+}
+
+.map-popup .btn.is-seen {
+  background: #e3f4ea;
+}
+
+/* ---------- Cópia dos dados ---------- */
+
+.backup {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.welcome-card .backup {
+  margin-top: 0.5rem;
+  padding-top: 0;
+  border-top: 0;
+  justify-items: center;
+}
+
+.backup p {
+  color: var(--muted);
+  max-width: 60ch;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.welcome-card .backup-actions {
+  justify-content: center;
+}
+
 /* ---------- Baralho de descobertas ---------- */
 
 .sheet.deck,

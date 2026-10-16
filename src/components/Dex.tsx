@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { fetchTaxaByIds, type SpeciesCount, type Taxon } from '../api'
 import { CATEGORIES, categoryOf } from '../categories'
 import { formatNumber } from '../format'
+import { Backup } from './Backup'
 import { SpeciesCard } from './SpeciesCard'
 
 interface Props {
@@ -137,6 +138,8 @@ export function Dex({ seen, counts, regional, onOpen, onToggleSeen, onStartDeck 
           </div>
         </section>
       )}
+
+      <Backup />
     </>
   )
 }

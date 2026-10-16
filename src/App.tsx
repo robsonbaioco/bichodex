@@ -9,6 +9,7 @@ import {
   type Taxon,
 } from './api'
 import { CATEGORIES, type Category } from './categories'
+import { Backup } from './components/Backup'
 import { Deck } from './components/Deck'
 import { Dex } from './components/Dex'
 import { Games } from './components/Games'
@@ -406,6 +407,7 @@ export default function App() {
             <button className="link-btn theme-link" onClick={() => setPickingTheme(true)}>
               🎨 Mudar o tema
             </button>
+            <Backup importOnly />
           </div>
         </main>
         {detail}
@@ -647,7 +649,9 @@ export default function App() {
                 rarity={rarity}
                 query={query}
                 filters={filterBar(true)}
+                seen={seenSet}
                 onOpen={openSpecies}
+                onToggleSeen={toggleSeen}
               />
             </Suspense>
           )}

@@ -1,7 +1,7 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { fetchCountsForTaxa, fetchRecentSightings, type Place, type Sighting } from '../api'
+import { fetchCountsForTaxa, fetchRecentSightings, type Place, type Sighting, type Taxon } from '../api'
 import { categoryOf, type Category } from '../categories'
 import { displayName, formatNumber, frequencyLabel, type Rarity } from '../format'
 
@@ -15,7 +15,9 @@ interface Props {
   query: string
   /** Controles dos filtros, mostrados acima do mapa. */
   filters: ReactNode
+  seen: Set<number>
   onOpen: (id: number) => void
+  onToggleSeen: (taxon: Taxon) => void
 }
 
 const formatDate = (iso?: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR') : '')
@@ -30,12 +32,28 @@ const normalize = (text: string) =>
     .toLowerCase()
 
 /** Mapa da área de busca com os registros mais recentes; tocar em um ponto leva à ficha da espécie. */
-export default function MapView({ place, radius, category, threatened, rarity, query, filters, onOpen }: Props) {
+export default function MapView({
+  place,
+  radius,
+  category,
+  threatened,
+  rarity,
+  query,
+  filters,
+  seen,
+  onOpen,
+  onToggleSeen,
+}: Props) {
   const node = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const markers = useRef<L.LayerGroup | null>(null)
   const openRef = useRef(onOpen)
   openRef.current = onOpen
+  // por referência, para marcar uma espécie não redesenhar todos os pontos
+  const seenRef = useRef(seen)
+  seenRef.current = seen
+  const toggleRef = useRef(onToggleSeen)
+  toggleRef.current = onToggleSeen
   const [sightings, setSightings] = useState<Sighting[] | null>(null)
   const [failed, setFailed] = useState(false)
   /** Registros de cada espécie na região; só é buscado quando há filtro de raridade. */
@@ -119,7 +137,20 @@ export default function MapView({ place, radius, category, threatened, rarity, q
       button.className = 'btn'
       button.textContent = 'Ver ficha'
       button.onclick = () => openRef.current(sighting.taxon.id)
-      popup.append(title, detail, button)
+      const seenButton = document.createElement('button')
+      const paintSeen = (isSeen: boolean) => {
+        seenButton.className = `btn${isSeen ? ' is-seen' : ''}`
+        seenButton.textContent = isSeen ? '✓ Avistado' : 'Marcar como avistado'
+        seenButton.setAttribute('aria-pressed', String(isSeen))
+      }
+      seenButton.onclick = () => {
+        paintSeen(!seenRef.current.has(sighting.taxon.id))
+        toggleRef.current(sighting.taxon)
+      }
+      const actions = document.createElement('div')
+      actions.className = 'map-popup-actions'
+      actions.append(seenButton, button)
+      popup.append(title, detail, actions)
       L.circleMarker([sighting.lat, sighting.lng], {
         radius: 7,
         color: '#fff',
@@ -129,6 +160,8 @@ export default function MapView({ place, radius, category, threatened, rarity, q
       })
         .addTo(layer)
         .bindPopup(popup)
+        // a marcação pode ter mudado em outro ponto da mesma espécie ou na ficha
+        .on('popupopen', () => paintSeen(seenRef.current.has(sighting.taxon.id)))
     }
     // place e radius entram porque o mapa (e a camada de pontos) é recriado quando mudam
   }, [visible, counts, place, radius])

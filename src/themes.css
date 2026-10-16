@@ -79,7 +79,8 @@
 .welcome-card h1,
 .detail-body h2,
 .highlight h2,
-.world h2 {
+.world h2,
+.backup h2 {
   font-family: var(--font-display);
 }
 
