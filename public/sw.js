@@ -16,8 +16,13 @@ self.addEventListener('fetch', (event) => {
   const request = event.request
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return
 
+  // A página sempre confere com o servidor (o GitHub Pages manda guardar por 10 min), para uma versão nova
+  // chegar na hora; os arquivos de assets têm o hash no nome e podem vir do cache do navegador.
+  const network =
+    request.mode === 'navigate' ? fetch(request.url, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(request)
+
   event.respondWith(
-    fetch(request)
+    network
       .then((response) => {
         const copy = response.clone()
         caches.open(CACHE).then((cache) => cache.put(request, copy))

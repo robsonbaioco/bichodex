@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { InstallPrompt } from './components/InstallPrompt'
+import { UpdatePrompt } from './components/UpdatePrompt'
 import { applyTheme, loadIntensity, loadTheme } from './themes'
 import '@fontsource/permanent-marker/latin-400.css'
 import '@fontsource/cinzel/latin-700.css'
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
     <InstallPrompt />
+    <UpdatePrompt />
   </StrictMode>,
 )
 
