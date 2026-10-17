@@ -113,6 +113,8 @@ export default function App() {
   const [deckOpen, setDeckOpen] = useState(false)
   const [trail, setTrail] = useState<TrailState | null>(() => load('trail', null))
   const [trailOpen, setTrailOpen] = useState(false)
+  /** Último avistamento feito fora da ficha, mostrado num aviso rápido que não interrompe a navegação. */
+  const [justSeen, setJustSeen] = useState<{ taxon: Taxon; ordinal: number } | null>(null)
 
   const request = useRef(0)
   const openedHere = useRef(false)
@@ -287,20 +289,30 @@ export default function App() {
     })
   }
 
-  // Marcar abre o cartão de conquista (a não ser no baralho e na trilha, que marcam várias em sequência);
-  // desmarcar apenas remove.
-  function toggleSeen(taxon: Taxon, where: SeenWhere = 'wild', silent = false) {
+  // Marcar pela home (cartões, destaques, mapa, dex) mostra só um aviso rápido com a opção de
+  // compartilhar, para dar para marcar várias espécies em sequência sem nada abrir por cima.
+  // Na ficha o cartão de conquista continua abrindo; o baralho e a trilha têm fluxo próprio, sem aviso.
+  // Desmarcar apenas remove.
+  function toggleSeen(taxon: Taxon, where: SeenWhere = 'wild', feedback: 'toast' | 'card' | 'none' = 'toast') {
     if (seenSet.has(taxon.id)) {
       setSeen((current) => current.filter((id) => id !== taxon.id))
       setWhere(taxon.id, 'wild')
       setProgress((current) => withoutSighting(current, taxon.id))
+      setJustSeen((current) => (current?.taxon.id === taxon.id ? null : current))
     } else {
       setSeen((current) => [...current, taxon.id])
       setWhere(taxon.id, where)
       setProgress((current) => withSighting(current, taxon))
-      if (place && !silent) setSharing(taxon)
+      if (feedback === 'card' && place) setSharing(taxon)
+      else if (feedback !== 'none') setJustSeen({ taxon, ordinal: seen.length + 1 })
     }
   }
+
+  useEffect(() => {
+    if (!justSeen) return
+    const timer = setTimeout(() => setJustSeen(null), 6000)
+    return () => clearTimeout(timer)
+  }, [justSeen])
 
   function startTrail() {
     if (!place) return
@@ -317,7 +329,7 @@ export default function App() {
         : [...current.found, { id: taxon.id, name: displayName(taxon) }]
       return { ...current, found }
     })
-    if (!seenSet.has(taxon.id)) toggleSeen(taxon, 'wild', true)
+    if (!seenSet.has(taxon.id)) toggleSeen(taxon, 'wild', 'none')
   }
 
   function openSpecies(id: number) {
@@ -366,7 +378,7 @@ export default function App() {
       maxCount={topCount}
       seen={seenSet.has(selectedId)}
       where={zooIds.includes(selectedId) ? 'zoo' : 'wild'}
-      onToggleSeen={toggleSeen}
+      onToggleSeen={(taxon) => toggleSeen(taxon, 'wild', 'card')}
       onShare={place ? setSharing : undefined}
       onClose={closeDetail}
     />
@@ -686,6 +698,26 @@ export default function App() {
         </button>
       )}
 
+      {justSeen && (
+        <div className={`seen-toast${trail && !trailOpen ? ' is-raised' : ''}`} role="status">
+          <span className="seen-toast-text">
+            ✓ {displayName(justSeen.taxon)} · nº {justSeen.ordinal} da sua dex
+          </span>
+          <button
+            className="seen-toast-share"
+            onClick={() => {
+              setSharing(justSeen.taxon)
+              setJustSeen(null)
+            }}
+          >
+            Compartilhar
+          </button>
+          <button className="seen-toast-close" onClick={() => setJustSeen(null)} aria-label="Fechar aviso">
+            ✕
+          </button>
+        </div>
+      )}
+
       <nav className="tabs" aria-label="Seções">
         {TABS.map((tab) => (
           <a
@@ -703,7 +735,7 @@ export default function App() {
       {deckOpen && (
         <Deck
           items={unseenRegional}
-          onSeen={(taxon) => toggleSeen(taxon, 'wild', true)}
+          onSeen={(taxon) => toggleSeen(taxon, 'wild', 'none')}
           onClose={() => setDeckOpen(false)}
         />
       )}
