@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Biodiversigames</title>
+  <meta name="description" content="Jogos diários de biodiversidade feitos com dados abertos: GBIF, iNaturalist, Open Tree of Life e Wikipédia.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap">
+  <link rel="stylesheet" href="shared/base.css">
+  <style>
+    .hero { text-align: center; margin: 8px 0 20px; }
+    .hero h1 { font-size: 2rem; margin: 0 0 4px; }
+    .hero p { color: var(--muted); margin: 0 auto; max-width: 34rem; }
+    .catalog { display: grid; gap: 12px; }
+    .game {
+      display: grid;
+      grid-template-columns: 64px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      color: inherit;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    a.game:hover { border-color: var(--accent); transform: translateY(-1px); }
+    .game .emoji { font-size: 2.4rem; text-align: center; }
+    .game h2 { margin: 0; font-size: 1.15rem; }
+    .game p { margin: 2px 0 6px; color: var(--muted); font-size: 0.92rem; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-size: 0.72rem; font-weight: 800; background: var(--surface-2); border-radius: 999px; padding: 2px 8px; color: var(--muted); }
+    .status { font-size: 0.8rem; font-weight: 800; text-align: right; white-space: nowrap; }
+    .status .done { color: var(--good); }
+    .status .todo { color: var(--accent); }
+    .game.soon { opacity: 0.6; box-shadow: none; border-style: dashed; }
+    .section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 22px 0 8px; }
+    @media (max-width: 480px) {
+      .game { grid-template-columns: 44px 1fr; }
+      .game .emoji { font-size: 1.9rem; }
+      .status { grid-column: 2; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <h1>🌿 Biodiversigames</h1>
+      <p>Jogos diários sobre a vida na Terra, feitos com dados abertos de ciência e ciência cidadã. Um desafio novo por dia em cada jogo.</p>
+    </header>
+
+    <div class="catalog" id="catalog"></div>
+    <h3 class="section-title">Em breve</h3>
+    <div class="catalog" id="soon"></div>
+  </main>
+
+  <footer class="credits">
+    Dados: <a href="https://www.gbif.org" target="_blank" rel="noopener">GBIF</a> ·
+    <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a> ·
+    <a href="https://tree.opentreeoflife.org" target="_blank" rel="noopener">Open Tree of Life</a> ·
+    <a href="https://pt.wikipedia.org" target="_blank" rel="noopener">Wikipédia</a>
+  </footer>
+
+  <script src="shared/common.js"></script>
+  <script>
+    (function () {
+      const { el } = BG;
+      const today = BG.todayNumber();
+
+      const GAMES = [
+        {
+          dir: 'parentes', key: 'parentes', emoji: '🌳', name: 'Parentes',
+          text: 'Ordene 5 espécies da mais à menos aparentada com a espécie do dia. A baleia é mais parente do hipopótamo ou do boi?',
+          tags: ['ordenar', 'evolução', 'Open Tree of Life'],
+        },
+        {
+          dir: 'conexoes-selvagens', key: 'conexoes', emoji: '🧩', name: 'Conexões Selvagens',
+          text: 'Separe 16 seres vivos em 4 grupos escondidos. Cuidado com as pegadinhas!',
+          tags: ['estilo Connections', 'taxonomia', 'GBIF'],
+        },
+        {
+          dir: 'onde-vive', key: 'onde-vive', emoji: '🗺️', name: 'Onde Vive?',
+          text: 'Marque no mapa onde vive a espécie do dia. Cada palpite mostra a distância e a direção.',
+          tags: ['estilo Worldle', 'geografia', 'GBIF'],
+        },
+      ];
+      const SOON = [
+        { emoji: '🐾', name: 'Bichodle', text: 'Adivinhe o bicho do dia: cada palpite compara classe, ordem, família, bioma, tamanho e risco de extinção.', tags: ['estilo Wordle'] },
+        { emoji: '🎵', name: 'Canto do Dia', text: 'Ouça um trecho do canto e descubra a ave. O áudio fica mais longo a cada erro.', tags: ['estilo Heardle', 'xeno-canto'] },
+      ];
+
+      function status(g) {
+        const day = BG.load(`${g.key}:day:${today}`, null);
+        const stats = BG.load(`${g.key}:stats`, null);
+        const streak = stats && stats.last >= today - 1 ? stats.streak : 0;
+        return el('div', { class: 'status' },
+          day && day.done
+            ? el('div', { class: 'done', text: day.won ? '✅ feito hoje' : '🍂 jogado hoje' })
+            : el('div', { class: 'todo', text: 'Jogar ▸' }),
+          streak ? el('div', { text: `🔥 ${streak} dia${streak > 1 ? 's' : ''}` }) : '',
+        );
+      }
+
+      function card(g, soon) {
+        const body = [
+          el('div', { class: 'emoji', 'aria-hidden': 'true', text: g.emoji }),
+          el('div', {}, el('h2', { text: g.name }), el('p', { text: g.text }),
+            el('div', { class: 'tags' }, g.tags.map((t) => el('span', { class: 'tag', text: t })))),
+        ];
+        return soon
+          ? el('div', { class: 'game soon' }, ...body)
+          : el('a', { class: 'game', href: `${g.dir}/index.html?catalogo=1` }, ...body, status(g));
+      }
+
+      document.getElementById('catalog').replaceChildren(...GAMES.map((g) => card(g)));
+      document.getElementById('soon').replaceChildren(...SOON.map((g) => card(g, true)));
+    })();
+  </script>
+</body>
+</html>

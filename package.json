@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "jogos": "node scripts/copiar-jogos.mjs",
+    "predev": "npm run jogos",
     "dev": "vite",
+    "prebuild": "npm run jogos",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "icons": "pwa-assets-generator",

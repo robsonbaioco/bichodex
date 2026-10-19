@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Onde Vive?</title>
+  <meta name="description" content="Jogo diário: descubra no mapa onde vive a espécie do dia, com dados de ocorrência do GBIF.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>🗺️ Onde Vive? <small id="day-label"></small></h1>
+    <button class="icon-btn" id="btn-practice" title="Modo treino (espécie aleatória)" aria-pressed="false">🎲</button>
+    <button class="icon-btn" id="btn-stats" title="Estatísticas" aria-label="Estatísticas">📊</button>
+    <button class="icon-btn" id="btn-help" title="Como jogar" aria-label="Como jogar">?</button>
+  </header>
+
+  <main>
+    <div id="mode-banner" class="mode-banner" hidden>Modo treino: não conta nas estatísticas</div>
+    <section class="species" id="species"></section>
+    <div class="map-wrap">
+      <div id="map" aria-label="Mapa-múndi: clique para marcar seu palpite"></div>
+      <div class="map-tip" id="map-tip">Toque no mapa para marcar seu palpite</div>
+    </div>
+    <div class="actions" id="controls">
+      <button class="btn" id="btn-guess" disabled>📍 Chutar aqui</button>
+    </div>
+    <ol class="guesses" id="guesses"></ol>
+    <div class="hints" id="hints"></div>
+    <section id="result" hidden></section>
+  </main>
+
+  <footer class="credits">
+    Ocorrências e mapa-base: <a href="https://www.gbif.org" target="_blank" rel="noopener">GBIF</a> (© OpenStreetMap, OpenMapTiles) ·
+    Fotos: <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a> ·
+    Textos: <a href="https://pt.wikipedia.org" target="_blank" rel="noopener">Wikipédia</a> (CC BY-SA)
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="common.js"></script>
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

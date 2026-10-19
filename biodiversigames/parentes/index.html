@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parentes</title>
+  <meta name="description" content="Jogo diário: ordene as espécies da mais aparentada à menos aparentada, usando a árvore da vida do Open Tree of Life.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>🌳 Parentes <small id="day-label"></small></h1>
+    <button class="icon-btn" id="btn-practice" title="Modo treino (puzzle aleatório)" aria-pressed="false">🎲</button>
+    <button class="icon-btn" id="btn-stats" title="Estatísticas" aria-label="Estatísticas">📊</button>
+    <button class="icon-btn" id="btn-help" title="Como jogar" aria-label="Como jogar">?</button>
+  </header>
+
+  <main>
+    <div id="mode-banner" class="mode-banner" hidden>Modo treino: não conta nas estatísticas</div>
+    <section class="target" id="target"></section>
+    <p class="prompt">Ordene do <strong>parente mais próximo</strong> ao <strong>mais distante</strong>.</p>
+    <div class="scale-label">⬆ mais próximo</div>
+    <ol class="options" id="options"></ol>
+    <div class="scale-label">⬇ mais distante</div>
+    <div class="tries" id="tries"></div>
+    <div class="actions">
+      <button class="btn" id="btn-submit">Conferir</button>
+    </div>
+    <section id="result" hidden></section>
+  </main>
+
+  <footer class="credits">
+    Filogenia: <a href="https://tree.opentreeoflife.org" target="_blank" rel="noopener">Open Tree of Life</a> ·
+    Fotos: <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a> (licenças CC, créditos ao fim de cada partida)
+  </footer>
+
+  <script src="common.js"></script>
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
