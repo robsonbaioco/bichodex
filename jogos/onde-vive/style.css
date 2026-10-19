@@ -1,0 +1,95 @@
+.species {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 10px;
+  margin-bottom: 12px;
+}
+.species img { width: 110px; height: 110px; object-fit: cover; border-radius: 10px; flex: none; background: var(--surface-2); }
+.species .eyebrow { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; }
+.species h2 { margin: 2px 0; font-size: 1.45rem; line-height: 1.15; }
+.species .sci { color: var(--muted); font-style: italic; }
+
+.map-wrap { position: relative; }
+#map {
+  height: 380px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background: #aad3df;
+  z-index: 0;
+}
+.map-tip {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgb(0 0 0 / 0.65);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 500;
+  white-space: nowrap;
+}
+
+.guesses { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.guesses li {
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-variant-numeric: tabular-nums;
+}
+.guesses .n { font-weight: 800; color: var(--muted); }
+.guesses .dist { font-weight: 800; }
+.guesses .arrow { font-size: 1.2rem; }
+.guesses .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.guesses .bar span { display: block; height: 100%; }
+
+.hints { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.hint {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.92rem;
+}
+
+#result {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-top: 12px;
+}
+#result h2 { margin: 0 0 6px; }
+#result .wiki { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 0.93rem; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+
+.guess-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+}
+
+@media (max-width: 480px) {
+  .species img { width: 80px; height: 80px; }
+  .species h2 { font-size: 1.2rem; }
+  #map { height: 300px; }
+  .guesses li { grid-template-columns: 22px 1fr auto auto; gap: 8px; padding: 8px; }
+}

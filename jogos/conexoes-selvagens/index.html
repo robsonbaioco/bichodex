@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conexões Selvagens</title>
+  <meta name="description" content="Jogo diário: encontre os 4 grupos escondidos entre 16 seres vivos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>🧩 Conexões Selvagens <small id="day-label"></small></h1>
+    <button class="icon-btn" id="btn-photos" title="Mostrar/ocultar fotos" aria-pressed="true">📷</button>
+    <button class="icon-btn" id="btn-practice" title="Modo treino (puzzle aleatório)" aria-pressed="false">🎲</button>
+    <button class="icon-btn" id="btn-stats" title="Estatísticas" aria-label="Estatísticas">📊</button>
+    <button class="icon-btn" id="btn-help" title="Como jogar" aria-label="Como jogar">?</button>
+  </header>
+
+  <main>
+    <div id="mode-banner" class="mode-banner" hidden>Modo treino: não conta nas estatísticas</div>
+    <p class="prompt">Forme <strong>4 grupos de 4</strong> com algo em comum.</p>
+    <div id="solved" class="solved"></div>
+    <div id="grid" class="grid" role="group" aria-label="Itens"></div>
+    <div class="mistakes" id="mistakes"></div>
+    <div class="actions" id="controls">
+      <button class="btn secondary" id="btn-shuffle">Embaralhar</button>
+      <button class="btn secondary" id="btn-clear">Desmarcar</button>
+      <button class="btn" id="btn-submit" disabled>Enviar</button>
+    </div>
+    <section id="result" hidden></section>
+  </main>
+
+  <footer class="credits">
+    Taxonomia conferida no <a href="https://www.gbif.org" target="_blank" rel="noopener">GBIF</a> ·
+    Fotos: <a href="https://www.inaturalist.org" target="_blank" rel="noopener">iNaturalist</a> (licenças CC, créditos ao fim de cada partida)
+  </footer>
+
+  <script src="common.js"></script>
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
