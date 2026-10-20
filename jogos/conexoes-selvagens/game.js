@@ -3,7 +3,7 @@
   const { el } = BG;
   const GAME = 'conexoes';
   const MAX_MISTAKES = 4;
-  const SHARE_URL = ''; // preencha com o link do jogo no itch.io para aparecer no texto compartilhado
+  const SHARE_URL = BG.bichodexUrl('conexoes-selvagens'); // link direto para o jogo dentro do Bichodex, no fim do texto compartilhado
   const EMOJI = ['🟨', '🟩', '🟦', '🟪'];
   const puzzles = window.CONEXOES_DATA.puzzles;
   const today = BG.todayNumber();

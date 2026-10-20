@@ -236,5 +236,8 @@
     });
   }
 
-  window.BG = { todayNumber, dailyIndex, shuffle, rng, load, save, recordResult, getStats, el, toast, modal, closeModal, share, statsPanel, countdown };
+  // Link que abre o jogo direto na aba Jogos do Bichodex (#/jogos/<id>, mesmo id de src/components/Games.tsx).
+  const bichodexUrl = (id) => `https://robsonbaioco.github.io/bichodex/#/jogos/${id}`;
+
+  window.BG = { bichodexUrl, todayNumber, dailyIndex, shuffle, rng, load, save, recordResult, getStats, el, toast, modal, closeModal, share, statsPanel, countdown };
 })();

@@ -3,7 +3,7 @@
   const { el } = BG;
   const GAME = 'parentes';
   const MAX_TRIES = 4;
-  const SHARE_URL = ''; // preencha com o link do jogo no itch.io para aparecer no texto compartilhado
+  const SHARE_URL = BG.bichodexUrl('parentes'); // link direto para o jogo dentro do Bichodex, no fim do texto compartilhado
   const DATA = window.PARENTES_DATA;
   const puzzles = DATA.puzzles;
   const today = BG.todayNumber();
