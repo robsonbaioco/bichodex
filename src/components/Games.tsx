@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import type { Place } from '../api'
 import { Game2048 } from './Game2048'
 
@@ -52,15 +52,30 @@ const FRAME_STYLE: CSSProperties = {
   background: 'var(--surface)',
 }
 
+/** Jogo aberto pelo endereço (#/jogos/<id>), para que dê para mandar o link direto de um jogo. */
+function gameFromHash(): string | null {
+  return location.hash.match(/^#\/jogos\/([\w-]+)$/)?.[1] ?? null
+}
+
 /** Tela "Jogos": novos jogos entram na lista acima. */
 export function Games({ place, radius }: { place: Place; radius: number }) {
-  const [openGame, setOpenGame] = useState<string | null>(null)
+  const [openGame, setOpenGame] = useState<string | null>(gameFromHash)
   const game = GAMES.find((g) => g.id === openGame)
+
+  useEffect(() => {
+    const onHashChange = () => setOpenGame(gameFromHash())
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  const open = (id: string | null) => {
+    location.hash = id ? `#/jogos/${id}` : '#/jogos'
+  }
 
   if (game) {
     return (
       <section>
-        <button className="link-btn" onClick={() => setOpenGame(null)}>
+        <button className="link-btn" onClick={() => open(null)}>
           ← Todos os jogos
         </button>
         {game.src ? (
@@ -76,7 +91,7 @@ export function Games({ place, radius }: { place: Place; radius: number }) {
     <section className="games-list">
       <h2>🎮 Jogos</h2>
       {GAMES.map((game) => (
-        <button key={game.id} className="game-card" onClick={() => setOpenGame(game.id)}>
+        <button key={game.id} className="game-card" onClick={() => open(game.id)}>
           <span className="game-emoji" aria-hidden="true">
             {game.emoji}
           </span>

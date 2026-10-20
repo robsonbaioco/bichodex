@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchDailyCandidates, type Place, type Taxon } from '../api'
 import { displayName } from '../format'
+import { SITE_URL } from '../shareCard'
 import { applyMove, newGame, SIZE, GOAL, type Direction, type Mode, type GameState } from '../game2048'
 import { load, save } from '../storage'
 
@@ -51,6 +52,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
   /** Animal (foto + nome) fixo para cada valor de bloco: blocos com o mesmo número mostram o mesmo animal. */
   const byValue = useRef(new Map<number, { url: string; name: string }>())
   const [photosReady, setPhotosReady] = useState(true)
+  const [copied, setCopied] = useState(false)
   const board = useRef<HTMLDivElement>(null)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
@@ -111,6 +113,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
   const start = useCallback((m: Mode) => {
     setMode(m)
     setGame(newGame(m))
+    setCopied(false)
   }, [])
 
   const move = useCallback(
@@ -188,6 +191,26 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
 
   const finished = game.over || (game.won && game.mode === 'normal')
 
+  async function share() {
+    if (!game) return
+    const points = game.score.toLocaleString('pt-BR')
+    const text = [
+      game.won && game.mode === 'normal'
+        ? `🎉 Cheguei em 2048 no Bicho 2048 do Bichodex, com ${points} pontos!`
+        : `🧩 Fiz ${points} pontos no Bicho 2048 do Bichodex (maior bloco: ${maxTile}).`,
+      'Consegue me superar?',
+      `${SITE_URL}#/jogos/2048`,
+    ].join('\n')
+    if (navigator.share) {
+      await navigator.share({ text }).catch(() => {})
+      return
+    }
+    await navigator.clipboard
+      .writeText(text)
+      .then(() => setCopied(true))
+      .catch(() => {})
+  }
+
   return (
     <div className="g2048">
       <div className="g2048-bar">
@@ -252,6 +275,9 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
             )}
             <button className="btn btn-primary" onClick={() => start(mode)}>
               ↻ Jogar de novo
+            </button>
+            <button className="btn" onClick={share}>
+              {copied ? '✓ Copiado' : '📤 Compartilhar'}
             </button>
           </div>
         )}

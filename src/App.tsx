@@ -43,7 +43,8 @@ const TABS: { id: View; label: string; emoji: string }[] = [
 /** Aba indicada pelo endereço; nulo quando o endereço é o de uma ficha, que abre por cima da aba atual. */
 function viewFromHash(): View | null {
   if (location.hash.length <= 1) return 'explorar'
-  const match = location.hash.match(/^#\/(explorar|mapa|dex|missoes|jogos)$/)
+  // #/jogos/<id> abre direto um jogo (link compartilhado).
+  const match = location.hash.match(/^#\/(explorar|mapa|dex|missoes|jogos)$/) ?? location.hash.match(/^#\/(jogos)\/[\w-]+$/)
   return match ? (match[1] as View) : null
 }
 

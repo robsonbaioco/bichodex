@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { watchForUpdates } from '../updates'
 
 /** Partidas em andamento não são guardadas: nessas telas a atualização espera a pessoa pedir. */
-const busy = () => location.hash === '#/jogos'
+const busy = () => location.hash.startsWith('#/jogos')
 
 /** Recarrega sozinho quando há versão nova publicada; nos jogos, só avisa. */
 export function UpdatePrompt() {

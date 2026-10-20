@@ -72,7 +72,9 @@
 #result h2 { margin: 0 0 6px; }
 #result .wiki { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 0.93rem; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.legend i, .nearest i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.legend i.ring, .nearest i.ring { box-sizing: border-box; border: 3px solid; background: #fff; }
+.world-box { background: var(--surface-2); border-radius: 10px; padding: 4px 12px; margin-bottom: 4px; }
 
 .guess-pin {
   width: 26px;

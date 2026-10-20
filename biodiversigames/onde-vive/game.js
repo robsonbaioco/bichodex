@@ -4,7 +4,7 @@
   const GAME = 'onde-vive';
   const MAX_GUESSES = 6;
   const WIN_KM = 250; // acertou se o palpite estiver a até 250 km de um registro
-  const SHARE_URL = ''; // preencha com o link do jogo no itch.io para aparecer no texto compartilhado
+  const SHARE_URL = BG.bichodexUrl('onde-vive'); // link direto para o jogo dentro do Bichodex, no fim do texto compartilhado
   const species = window.ONDE_VIVE_DATA.species;
   const today = BG.todayNumber();
 
@@ -13,11 +13,18 @@
     NORTH_AMERICA: 'América do Norte', OCEANIA: 'Oceania', SOUTH_AMERICA: 'América do Sul',
   };
   const COLORS = { hit: '#3d8b4f', near: '#d9a520', mid: '#e07b2e', far: '#b8513a' };
+  const NEAREST_COLOR = '#1d4ed8';
+  const GBIF_API = 'https://api.gbif.org/v1';
+  const BASIS_PT = {
+    HUMAN_OBSERVATION: 'observação', OBSERVATION: 'observação', MACHINE_OBSERVATION: 'registro automático',
+    PRESERVED_SPECIMEN: 'espécime de museu', MATERIAL_SAMPLE: 'amostra', OCCURRENCE: 'registro',
+  };
   const ARROWS = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
 
   const $ = (id) => document.getElementById(id);
   let sp, state, practice;
-  let map, pending, layer;
+  let map, pending, layer, worldLayer;
+  let worldOn = false; // camada com todas as ocorrências do GBIF, depois do fim do jogo
 
   // ---------- geometria ----------
 
@@ -37,13 +44,24 @@
     return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
   }
 
-  function evaluate(lat, lng) {
+  function nearest(lat, lng) {
     let best = null;
     for (const p of sp.points) {
       const d = distanceKm([lat, lng], p);
       if (!best || d < best.dist) best = { dist: d, to: p };
     }
+    return best;
+  }
+
+  function evaluate(lat, lng) {
+    const best = nearest(lat, lng);
     return { lat, lng, dist: best.dist, bearing: bearing([lat, lng], best.to) };
+  }
+
+  // Melhor palpite e o registro mais próximo dele (o ponto para onde a seta apontava).
+  function closestHit() {
+    const g = state.guesses.reduce((a, b) => (b.dist < a.dist ? b : a));
+    return { guess: g, ...nearest(g.lat, g.lng) };
   }
 
   function tier(d) {
@@ -60,6 +78,7 @@
 
   function startDaily() {
     practice = false;
+    worldOn = false;
     sp = species[BG.dailyIndex(today, species.length)];
     state = BG.load(`${GAME}:day:${today}`, null) || { guesses: [], done: false, won: false };
     render(true);
@@ -67,6 +86,7 @@
 
   function startPractice() {
     practice = true;
+    worldOn = false;
     const daily = BG.dailyIndex(today, species.length);
     let idx;
     do idx = Math.floor(Math.random() * species.length);
@@ -116,22 +136,114 @@
       pending.remove();
       pending = null;
     }
-    if (state.done) {
+    drawWorld();
+    if (state.done && !worldOn) {
       for (const p of sp.points) {
         L.circleMarker(p, { radius: 4, color: '#c2410c', weight: 1, fillColor: '#f97316', fillOpacity: 0.8 }).addTo(layer);
       }
+      // Liga o melhor palpite ao registro mais próximo pelo caminho mais curto (mesmo cruzando o antimeridiano).
+      const { guess: g, to } = closestHit();
+      const lng = to[1] + (Math.abs(to[1] - g.lng) > 180 ? (g.lng > to[1] ? 360 : -360) : 0);
+      L.polyline([[g.lat, g.lng], [to[0], lng]], { color: NEAREST_COLOR, weight: 2, dashArray: '6 6', interactive: false }).addTo(layer);
+      L.circleMarker([to[0], lng], { radius: 8, color: NEAREST_COLOR, weight: 3, fillColor: '#fff', fillOpacity: 1 })
+        .bindTooltip('Registro mais próximo do seu melhor palpite')
+        .addTo(layer);
     }
     state.guesses.forEach((g, i) => {
       L.marker([g.lat, g.lng], { icon: pinIcon(i + 1, COLORS[tier(g.dist)]), keyboard: false })
         .bindTooltip(fmtKm(g.dist))
         .addTo(layer);
     });
-    if (state.done) {
+    if (worldOn) {
+      map.setView([15, 0], window.innerWidth < 500 ? 1 : 1.5);
+    } else if (state.done) {
       const pts = [...sp.points, ...state.guesses.map((g) => [g.lat, g.lng])];
       map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 6 });
     } else if (resetView) {
       map.setView([15, 0], window.innerWidth < 500 ? 1 : 1.5);
     }
+  }
+
+  // Mapa de densidade do GBIF com todas as ocorrências da espécie, de qualquer origem.
+  function drawWorld() {
+    if (worldLayer && (!worldOn || worldLayer.taxonKey !== sp.gbifKey)) {
+      worldLayer.remove();
+      worldLayer = null;
+    }
+    if (!worldOn || worldLayer) return;
+    const dpr = window.devicePixelRatio > 1 ? 2 : 1;
+    worldLayer = L.tileLayer(`https://api.gbif.org/v2/map/occurrence/density/{z}/{x}/{y}@${dpr}x.png?srs=EPSG:3857&taxonKey=${sp.gbifKey}&bin=hex&hexPerTile=50&style=purpleYellow.poly`, {
+      tileSize: 512, // os tiles do GBIF têm 512 px
+      zoomOffset: -1,
+      opacity: 0.85,
+      attribution: 'Ocorrências: <a href="https://www.gbif.org" target="_blank">GBIF</a>',
+    }).addTo(map);
+    worldLayer.taxonKey = sp.gbifKey;
+  }
+
+  function toggleWorld() {
+    worldOn = !worldOn;
+    render(false);
+    $('map').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ---------- GBIF ao vivo (só na tela de resultado; sem rede, o texto fica no resumo) ----------
+
+  const apiCache = new Map();
+  function gbif(path, params) {
+    const url = `${GBIF_API}/${path}?${new URLSearchParams(params)}`;
+    if (!apiCache.has(url)) apiCache.set(url, fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null));
+    return apiCache.get(url);
+  }
+
+  // Troca o conteúdo do elemento quando a resposta chegar, se ele ainda estiver na tela.
+  function fillLater(node, promise, format) {
+    promise.then((data) => {
+      const content = format(data);
+      if (content && node.isConnected) node.replaceChildren(content);
+    });
+    return node;
+  }
+
+  function placeOf(r) {
+    const parts = [r.municipality, r.stateProvince, r.countryCode && countryName(r.countryCode)].filter(Boolean);
+    if (parts.length < 2 && r.locality) parts.unshift(r.locality.length > 60 ? r.locality.slice(0, 57) + '…' : r.locality);
+    return [...new Set(parts)].join(', ');
+  }
+
+  function nearestRecordLine() {
+    const { dist, to } = closestHit();
+    const coords = `${to[0].toLocaleString('pt-BR')}, ${to[1].toLocaleString('pt-BR')}`;
+    const record = gbif('occurrence/search', { taxonKey: sp.gbifKey, geoDistance: `${to[0]},${to[1]},2km`, limit: 1 })
+      .then((d) => d?.results?.[0]);
+    return el('p', { class: 'nearest' },
+      el('i', { class: 'ring', style: `border-color:${NEAREST_COLOR}` }),
+      `Seu melhor palpite ficou a ${fmtKm(dist)} de um registro `,
+      fillLater(el('span', { text: `nas coordenadas ${coords}` }), record, (r) => {
+        if (!r) return null;
+        const about = [BASIS_PT[r.basisOfRecord], r.year && `de ${r.year}`].filter(Boolean).join(' ');
+        return el('span', {},
+          `em ${placeOf(r) || coords}${about ? ` (${about})` : ''} · `,
+          el('a', { href: `https://www.gbif.org/occurrence/${r.key}`, target: '_blank', rel: 'noopener', text: 'ver o registro' }));
+      }),
+      '.');
+  }
+
+  function worldText() {
+    const count = gbif('occurrence/search', { taxonKey: sp.gbifKey, limit: 0 });
+    return el('div', { class: 'world-box' },
+      el('p', {},
+        fillLater(el('span', { text: 'Todos os registros' }), count, (d) => {
+          if (!d) return null;
+          const n = d.count.toLocaleString('pt-BR');
+          return d.count < 100 ? `Só ${n} registros no mundo inteiro` : `${n} registros pelo mundo`;
+        }),
+        ` de ${sp.common} no GBIF. Quanto mais amarelo, mais registros no lugar.`),
+      el('p', { class: 'photo-credit' },
+        'Aqui entra tudo, não só a natureza: zoológicos, jardins botânicos, populações introduzidas e espécimes de museu. ',
+        'Por isso a espécie pode aparecer bem longe de onde vive. ',
+        el('a', { href: `https://www.gbif.org/species/${sp.gbifKey}`, target: '_blank', rel: 'noopener', text: 'Explorar no GBIF' })),
+    );
   }
 
   // ---------- renderização ----------
@@ -192,15 +304,21 @@
     const n = state.guesses.length;
     $('result').replaceChildren(
       el('h2', { text: state.won ? (n === 1 ? '🌟 De primeira!' : `🎉 Achou em ${n} palpites!`) : '🍂 Não foi dessa vez' }),
-      el('p', {}, `Os pontos laranja são ${sp.points.length} registros de ocorrência selecionados entre `,
-        el('strong', { text: sp.records.toLocaleString('pt-BR') }), ' registros no GBIF. ',
-        el('a', { href: `https://www.gbif.org/species/${sp.gbifKey}`, target: '_blank', rel: 'noopener', text: 'Ver mapa completo no GBIF' })),
-      sp.wiki ? el('div', { class: 'wiki' }, sp.wiki.extract, ' ', el('a', { href: sp.wiki.url, target: '_blank', rel: 'noopener', text: '(Wikipédia)' })) : '',
-      el('div', { class: 'legend' },
-        el('span', {}, el('i', { style: 'background:#f97316' }), 'registros da espécie'),
-        ...Object.entries({ hit: 'até 250 km', near: '< 1.000 km', mid: '< 3.000 km', far: 'mais longe' })
-          .map(([k, v]) => el('span', {}, el('i', { style: `background:${COLORS[k]}` }), v)),
+      ...(worldOn ? [worldText()] : [
+        nearestRecordLine(),
+        el('p', {}, `Os pontos laranja são ${sp.points.length} registros na natureza, selecionados entre `,
+          el('strong', { text: sp.records.toLocaleString('pt-BR') }), ' registros no GBIF.'),
+        el('div', { class: 'legend' },
+          el('span', {}, el('i', { style: 'background:#f97316' }), 'registros da espécie'),
+          el('span', {}, el('i', { class: 'ring', style: `border-color:${NEAREST_COLOR}` }), 'mais próximo'),
+          ...Object.entries({ hit: 'até 250 km', near: '< 1.000 km', mid: '< 3.000 km', far: 'mais longe' })
+            .map(([k, v]) => el('span', {}, el('i', { style: `background:${COLORS[k]}` }), v)),
+        ),
+      ]),
+      el('div', { class: 'actions' },
+        el('button', { class: 'btn world-btn', onclick: toggleWorld, text: worldOn ? '🎯 Voltar ao resultado' : '🌍 Veja todas as aparições no mundo' }),
       ),
+      sp.wiki ? el('div', { class: 'wiki' }, sp.wiki.extract, ' ', el('a', { href: sp.wiki.url, target: '_blank', rel: 'noopener', text: '(Wikipédia)' })) : '',
       el('div', { class: 'actions' },
         practice ? '' : el('button', { class: 'btn', onclick: shareResult, text: 'Compartilhar' }),
         el('button', { class: 'btn secondary', onclick: startPractice, text: '🎲 Jogar um treino' }),
@@ -249,6 +367,7 @@
         el('li', { text: `Cada palpite mostra a distância até o registro mais próximo da espécie e a direção (⬆️↗️➡️…).` }),
         el('li', { text: `Ganha quem marcar a até ${WIN_KM} km de um registro.` }),
         el('li', { text: 'Depois do 2º e do 4º palpite aparecem dicas: continente e país.' }),
+        el('li', { text: 'No fim, o mapa mostra o registro mais próximo do seu melhor palpite, e dá para ver todas as aparições da espécie no mundo.' }),
       ),
       el('p', { class: 'photo-credit', text: 'Os registros de ocorrência vêm do GBIF (Global Biodiversity Information Facility), sem registros de zoológicos, jardins botânicos e populações introduzidas.' }),
       el('p', { class: 'photo-credit', text: 'Um novo desafio a cada dia, à meia-noite. O 🎲 abre espécies de treino.' }),
