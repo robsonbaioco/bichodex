@@ -933,7 +933,8 @@
 }
 
 .g2048-board {
-  --g2048-cell: calc((100% - var(--g2048-gap) * 3) / 4);
+  /* Usada nos blocos absolutos, onde 100% é a caixa com padding: tira 2 paddings + 3 vãos. */
+  --g2048-cell: calc((100% - var(--g2048-gap) * 5) / 4);
   position: relative;
   aspect-ratio: 1;
   background: var(--surface);
