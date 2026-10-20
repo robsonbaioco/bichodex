@@ -46,7 +46,7 @@ export const THEMES: Theme[] = [
   },
   {
     id: 'grafite',
-    label: 'Grafite',
+    label: 'Graffiti',
     emoji: '🎨',
     description: 'Arte de rua: muro preto, spray neon e tinta escorrendo.',
     chrome: '#0a0a0d',

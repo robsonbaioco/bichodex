@@ -13,7 +13,7 @@ Catálogo dos seres vivos ao seu redor: informe sua localização e veja os anim
 - Abas de navegação: Explorar, Mapa dos registros recentes, Minha dex (álbum com progresso por categoria) e Missões (missões diárias, sequência e medalhas).
 - Baralho de descobertas e modo trilha para marcar várias espécies em sequência.
 - Aba Jogos: Bicho 2048 e os três jogos diários do Biodiversigames (Parentes, Conexões Selvagens e Onde Vive?).
-- Dez temas visuais, cada um em intensidade suave ou forte: Original, Grafite, Élfico, Jogo, Cordel, Naturalista, Terminal, Noturno, Colecionável e Parque.
+- Dez temas visuais, cada um em intensidade suave ou forte: Original, Graffiti, Élfico, Jogo, Cordel, Naturalista, Terminal, Noturno, Colecionável e Parque.
 
 ## Como funciona
 
