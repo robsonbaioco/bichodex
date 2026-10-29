@@ -20,6 +20,10 @@
     PRESERVED_SPECIMEN: 'espécime de museu', MATERIAL_SAMPLE: 'amostra', OCCURRENCE: 'registro',
   };
   const ARROWS = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
+  const INAT_API = 'https://api.inaturalist.org/v1';
+  const PHOTO_LICENSES = 'cc0,cc-by,cc-by-sa,cc-by-nc,cc-by-nc-sa,cc-by-nd,cc-by-nc-nd';
+  const GALLERY_PAGE = 30; // observações por página da galeria
+  const INAT_MAX = 10000; // a API do iNaturalist não pagina além disso
 
   const $ = (id) => document.getElementById(id);
   let sp, state, practice;
@@ -257,11 +261,15 @@
     $('btn-guess').disabled = true;
 
     $('species').replaceChildren(
-      el('img', { src: sp.photo, alt: sp.common, width: 110, height: 110 }),
+      el('button', { class: 'species-photo', onclick: showGallery, title: 'Ver mais fotos', 'aria-label': `Ver mais fotos de ${sp.common}` },
+        el('img', { src: sp.photo, alt: sp.common, width: 110, height: 110 }),
+        el('span', { class: 'more-badge', text: '🖼️ +' }),
+      ),
       el('div', {},
         el('div', { class: 'eyebrow', text: 'Onde vive esta espécie?' }),
         el('h2', { text: sp.common }),
         el('div', { class: 'sci', text: sp.sci }),
+        el('button', { class: 'link-btn', onclick: showGallery, text: '🖼️ Ver mais fotos' }),
         el('div', { class: 'photo-credit' }, '📷 ', el('a', { href: sp.inatUrl, target: '_blank', rel: 'noopener', text: sp.credit })),
       ),
     );
@@ -357,6 +365,83 @@
     BG.share(`🗺️ Onde Vive? #${today} ${n}\n${sp.common}\n${line}\n${arrows}${SHARE_URL ? '\n' + SHARE_URL : ''}`);
   }
 
+  // ---------- galeria de fotos (iNaturalist ao vivo) ----------
+
+  // Troca o tamanho na URL da foto do iNaturalist (square, small, medium, large, original).
+  const photoSize = (url, size) => url.replace(/\/square\./, `/${size}.`);
+
+  // Fotos de observações na natureza (grau de pesquisa, sem cativeiro, licença CC), das mais curtidas
+  // para as menos. O lugar de cada foto só aparece com o jogo terminado, para não entregar a resposta.
+  function showGallery() {
+    const taxonId = sp.inatUrl.match(/taxa\/(\d+)/)?.[1];
+    if (!taxonId) return;
+    const viewer = el('figure', { class: 'gallery-viewer', hidden: true });
+    const grid = el('div', { class: 'gallery-grid' });
+    const status = el('p', { class: 'gallery-status', text: 'Carregando fotos…' });
+    const more = el('button', { class: 'btn secondary', hidden: true, onclick: loadPage, text: 'Carregar mais fotos' });
+    let page = 0;
+    let shown = 0;
+
+    BG.modal(`Fotos de ${sp.common}`,
+      el('p', { class: 'photo-credit' },
+        'Fotos de observações na natureza enviadas ao ',
+        el('a', { href: `https://www.inaturalist.org/observations?taxon_id=${taxonId}&captive=false&quality_grade=research`, target: '_blank', rel: 'noopener', text: 'iNaturalist' }),
+        '. Repare no ambiente: ele dá pistas de onde a espécie vive.',
+        state.done ? '' : ' O lugar de cada foto aparece quando o jogo terminar.'),
+      viewer, grid, status, el('div', { class: 'actions' }, more),
+    ).classList.add('gallery-modal');
+    loadPage();
+
+    async function loadPage() {
+      more.disabled = true;
+      status.hidden = false;
+      status.textContent = 'Carregando fotos…';
+      const params = new URLSearchParams({
+        taxon_id: taxonId, photos: 'true', quality_grade: 'research', captive: 'false',
+        photo_license: PHOTO_LICENSES, order_by: 'votes', per_page: GALLERY_PAGE, page: page + 1, locale: 'pt-BR',
+      });
+      const data = await fetch(`${INAT_API}/observations?${params}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (!grid.isConnected) return; // modal fechado
+      more.disabled = false;
+      if (!data) {
+        status.textContent = 'Não foi possível carregar as fotos. Verifique sua conexão.';
+        more.textContent = 'Tentar de novo';
+        more.hidden = false;
+        return;
+      }
+      page++;
+      for (const obs of data.results) {
+        for (const photo of obs.photos) {
+          if (!photo.license_code || !photo.url) continue;
+          shown++;
+          grid.append(el('button', { class: 'gallery-thumb', onclick: () => openPhoto(photo, obs), 'aria-label': `Ampliar foto ${shown}` },
+            el('img', { src: photoSize(photo.url, 'small'), alt: '', loading: 'lazy' })));
+        }
+      }
+      const total = Math.min(data.total_results, INAT_MAX);
+      const n = data.total_results.toLocaleString('pt-BR');
+      status.textContent = shown
+        ? `${shown.toLocaleString('pt-BR')} fotos de ${n} observações${page * GALLERY_PAGE < total ? '' : ' (todas)'}`
+        : 'Nenhuma foto com licença livre no iNaturalist.';
+      more.textContent = 'Carregar mais fotos';
+      more.hidden = page * GALLERY_PAGE >= total;
+    }
+
+    function openPhoto(photo, obs) {
+      viewer.replaceChildren(
+        el('img', { src: photoSize(photo.url, 'large'), alt: `Foto de ${sp.common}` }),
+        el('figcaption', { class: 'photo-credit' },
+          photo.attribution,
+          ...(state.done ? [
+            obs.place_guess ? ` · ${obs.place_guess}` : '',
+            ' · ', el('a', { href: `https://www.inaturalist.org/observations/${obs.id}`, target: '_blank', rel: 'noopener', text: 'ver a observação' }),
+          ] : [])),
+      );
+      viewer.hidden = false;
+      viewer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
   // ---------- modais ----------
 
   function showHelp() {
@@ -367,6 +452,7 @@
         el('li', { text: `Cada palpite mostra a distância até o registro mais próximo da espécie e a direção (⬆️↗️➡️…).` }),
         el('li', { text: `Ganha quem marcar a até ${WIN_KM} km de um registro.` }),
         el('li', { text: 'Depois do 2º e do 4º palpite aparecem dicas: continente e país.' }),
+        el('li', { text: 'Toque na foto (ou em "Ver mais fotos") para ver as fotos da espécie no iNaturalist. O ambiente em volta pode ajudar.' }),
         el('li', { text: 'No fim, o mapa mostra o registro mais próximo do seu melhor palpite, e dá para ver todas as aparições da espécie no mundo.' }),
       ),
       el('p', { class: 'photo-credit', text: 'Os registros de ocorrência vêm do GBIF (Global Biodiversity Information Facility), sem registros de zoológicos, jardins botânicos e populações introduzidas.' }),

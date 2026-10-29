@@ -8,7 +8,40 @@
   padding: 10px;
   margin-bottom: 12px;
 }
-.species img { width: 110px; height: 110px; object-fit: cover; border-radius: 10px; flex: none; background: var(--surface-2); }
+.species img { width: 110px; height: 110px; object-fit: cover; border-radius: 10px; flex: none; background: var(--surface-2); display: block; }
+.species-photo { position: relative; flex: none; padding: 0; border: 0; background: none; border-radius: 10px; cursor: zoom-in; }
+.species-photo .more-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  background: rgb(0 0 0 / 0.65);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.link-btn {
+  padding: 0;
+  margin: 4px 0 2px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.link-btn:hover { text-decoration: underline; }
+
+.modal.gallery-modal { width: min(760px, 100%); }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.gallery-thumb { padding: 0; border: 0; background: var(--surface-2); border-radius: 8px; overflow: hidden; aspect-ratio: 1; cursor: zoom-in; }
+.gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-viewer { margin: 0 0 12px; }
+.gallery-viewer img { width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; background: var(--surface-2); display: block; }
+.gallery-viewer figcaption { margin-top: 4px; }
+.gallery-status { text-align: center; color: var(--muted); font-size: 0.85rem; }
 .species .eyebrow { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; }
 .species h2 { margin: 2px 0; font-size: 1.45rem; line-height: 1.15; }
 .species .sci { color: var(--muted); font-style: italic; }
