@@ -183,3 +183,29 @@ main {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ---------- tela de derrota (a resposta só aparece ao tocar em "Mostrar resultado") ---------- */
+.loss-screen { text-align: center; padding: 8px 4px 4px; }
+.loss-screen h2 { margin: 4px 0 6px; }
+.loss-screen p { margin: 0 0 12px; color: var(--muted); }
+.loss-art { position: relative; height: 96px; overflow: hidden; }
+.loss-face { position: absolute; left: 50%; bottom: 0; font-size: 3.4rem; transform: translateX(-50%); }
+.loss-leaf { position: absolute; top: 0; font-size: 1.6rem; opacity: 0; }
+.loss-leaf.l1 { left: 22%; }
+.loss-leaf.l2 { left: 48%; }
+.loss-leaf.l3 { left: 72%; }
+.loss-screen:not(.animate) .loss-leaf { opacity: 1; top: 30px; }
+.loss-screen.animate .loss-face { animation: loss-pop 0.6s cubic-bezier(0.2, 1.6, 0.4, 1) both, loss-shake 0.5s 0.7s ease-in-out 2; }
+.loss-screen.animate .loss-leaf { animation: loss-fall 2.4s ease-in both; }
+.loss-screen.animate .l2 { animation-delay: 0.35s; }
+.loss-screen.animate .l3 { animation-delay: 0.7s; }
+.loss-screen.animate h2, .loss-screen.animate p, .loss-screen.animate .actions { animation: loss-in 0.5s 0.5s both; }
+.btn.btn-big { font-size: 1.1rem; padding: 14px 22px; }
+@keyframes loss-pop { from { transform: translateX(-50%) scale(0); } to { transform: translateX(-50%) scale(1); } }
+@keyframes loss-shake { 0%, 100% { transform: translateX(-50%) rotate(0); } 25% { transform: translateX(-50%) rotate(-12deg); } 75% { transform: translateX(-50%) rotate(12deg); } }
+@keyframes loss-fall {
+  0% { opacity: 0; transform: translateY(-20px) rotate(0); }
+  15% { opacity: 1; }
+  100% { opacity: 0.9; transform: translateY(60px) translateX(18px) rotate(220deg); }
+}
+@keyframes loss-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

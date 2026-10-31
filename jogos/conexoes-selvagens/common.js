@@ -228,6 +228,33 @@
     }
   }
 
+  /**
+   * Tela de derrota: uma folha caindo e o aviso de que as chances acabaram, sem entregar a resposta.
+   * A resposta só aparece quando a pessoa toca em "Mostrar resultado" (`onReveal`).
+   * `extra` são botões opcionais (ex.: jogar um treino) mostrados ao lado.
+   */
+  function lossScreen(onReveal, ...extra) {
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const box = el('div', { class: 'loss-screen' + (reduce ? '' : ' animate') },
+      el('div', { class: 'loss-art', 'aria-hidden': 'true' },
+        el('span', { class: 'loss-leaf l1', text: '🍂' }),
+        el('span', { class: 'loss-leaf l2', text: '🍁' }),
+        el('span', { class: 'loss-leaf l3', text: '🍂' }),
+        el('span', { class: 'loss-face', text: '🙈' }),
+      ),
+      el('h2', { text: 'Acabaram as chances!' }),
+      el('p', { text: 'Quer ver a resposta? Ou feche e tente de novo amanhã.' }),
+      el('div', { class: 'actions' },
+        el('button', { class: 'btn btn-big', onclick: onReveal, text: '👀 Mostrar resultado' }),
+        ...extra,
+      ),
+    );
+    if (navigator.vibrate && !reduce) {
+      try { navigator.vibrate([60, 40, 60]); } catch {}
+    }
+    return box;
+  }
+
   // Aberto a partir do catálogo (index.html na raiz): mostra o botão de voltar.
   if (/[?&]catalogo\b/.test(location.search)) {
     document.addEventListener('DOMContentLoaded', () => {
@@ -239,5 +266,5 @@
   // Link que abre o jogo direto na aba Jogos do Bichodex (#/jogos/<id>, mesmo id de src/components/Games.tsx).
   const bichodexUrl = (id) => `https://robsonbaioco.github.io/bichodex/#/jogos/${id}`;
 
-  window.BG = { bichodexUrl, todayNumber, dailyIndex, shuffle, rng, load, save, recordResult, getStats, el, toast, modal, closeModal, share, statsPanel, countdown };
+  window.BG = { bichodexUrl, todayNumber, dailyIndex, shuffle, rng, load, save, recordResult, getStats, el, toast, modal, closeModal, share, statsPanel, countdown, lossScreen };
 })();
