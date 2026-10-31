@@ -46,6 +46,9 @@
   const itemByName = (name) => puzzle.groups.flatMap((g) => g.items).find((i) => i.name === name);
   const levelOf = (name) => puzzle.groups.find((g) => g.items.some((i) => i.name === name)).level;
 
+  // Perdeu e ainda não pediu para ver a resposta.
+  const veiled = () => state.done && !state.won && !state.revealed;
+
   // ---------- renderização ----------
 
   function render() {
@@ -54,7 +57,7 @@
     $('mode-banner').hidden = !practice;
 
     // Ao fim, mostra também os grupos que faltaram (na ordem de dificuldade).
-    const shownLevels = state.done
+    const shownLevels = state.done && !veiled()
       ? [...state.solved, ...puzzle.groups.map((g) => g.level).filter((l) => !state.solved.includes(l))]
       : state.solved;
     $('solved').replaceChildren(...shownLevels.map((lv) => {
@@ -63,13 +66,14 @@
     }));
 
     const remaining = state.order.filter((n) => !state.solved.includes(levelOf(n)));
-    $('grid').hidden = state.done;
-    $('grid').replaceChildren(...(state.done ? [] : remaining).map((name) => {
+    $('grid').hidden = state.done && !veiled();
+    $('grid').replaceChildren(...(state.done && !veiled() ? [] : remaining).map((name) => {
       const it = itemByName(name);
       return el('button', {
         class: 'tile',
         'aria-pressed': String(selected.has(name)),
         'data-name': name,
+        disabled: state.done,
         onclick: () => toggle(name),
       }, el('img', { src: it.thumb, alt: '', width: 48, height: 48, loading: 'lazy' }), el('span', { text: name }));
     }));
@@ -85,7 +89,8 @@
     );
 
     $('result').hidden = !state.done;
-    if (state.done) renderResult();
+    if (veiled()) $('result').replaceChildren(BG.lossScreen(reveal));
+    else if (state.done) renderResult();
   }
 
   function emojiGrid() {
@@ -143,7 +148,7 @@
     }
     persist();
     // Deixa a animação de erro aparecer antes de redesenhar.
-    setTimeout(render, best === 4 || state.done ? 0 : 380);
+    setTimeout(render, best === 4 ? 0 : 380);
   }
 
   function shake() {
@@ -160,8 +165,16 @@
     selected = new Set();
     if (!practice) {
       BG.recordResult(GAME, today, won, won ? state.mistakes : null, MAX_MISTAKES);
-      setTimeout(showStats, 1500);
+      if (won) setTimeout(showStats, 1500);
     }
+  }
+
+  function reveal() {
+    state.revealed = true;
+    persist();
+    render();
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!practice) setTimeout(showStats, 1500);
   }
 
   function shareResult() {

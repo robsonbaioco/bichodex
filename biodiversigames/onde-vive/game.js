@@ -133,6 +133,10 @@
     return L.divIcon({ className: '', html: `<div class="guess-pin" style="background:${color}">${label}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
   }
 
+  // Perdeu e ainda não pediu para ver a resposta.
+  const veiled = () => state.done && !state.won && !state.revealed;
+  const revealed = () => state.done && !veiled();
+
   function drawMap(resetView) {
     if (!map) return;
     layer.clearLayers();
@@ -141,7 +145,7 @@
       pending = null;
     }
     drawWorld();
-    if (state.done && !worldOn) {
+    if (revealed() && !worldOn) {
       for (const p of sp.points) {
         L.circleMarker(p, { radius: 4, color: '#c2410c', weight: 1, fillColor: '#f97316', fillOpacity: 0.8 }).addTo(layer);
       }
@@ -160,7 +164,7 @@
     });
     if (worldOn) {
       map.setView([15, 0], window.innerWidth < 500 ? 1 : 1.5);
-    } else if (state.done) {
+    } else if (revealed()) {
       const pts = [...sp.points, ...state.guesses.map((g) => [g.lat, g.lng])];
       map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 6 });
     } else if (resetView) {
@@ -288,7 +292,8 @@
     renderHints();
     drawMap(resetView);
     $('result').hidden = !state.done;
-    if (state.done) renderResult();
+    if (veiled()) $('result').replaceChildren(BG.lossScreen(reveal));
+    else if (state.done) renderResult();
   }
 
   function countryName(code) {
@@ -348,7 +353,7 @@
       state.won = won;
       if (!practice) {
         BG.recordResult(GAME, today, won, won ? state.guesses.length - 1 : null, MAX_GUESSES);
-        setTimeout(showStats, 2200);
+        if (won) setTimeout(showStats, 2200);
       }
     } else {
       BG.toast(`${fmtKm(g.dist)} ${arrowFor(g.bearing)}`);
@@ -356,6 +361,14 @@
     persist();
     render(false);
     if (state.done) $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function reveal() {
+    state.revealed = true;
+    persist();
+    render(false);
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!practice) setTimeout(showStats, 2200);
   }
 
   function shareResult() {
@@ -387,7 +400,7 @@
         'Fotos de observações na natureza enviadas ao ',
         el('a', { href: `https://www.inaturalist.org/observations?taxon_id=${taxonId}&captive=false&quality_grade=research`, target: '_blank', rel: 'noopener', text: 'iNaturalist' }),
         '. Repare no ambiente: ele dá pistas de onde a espécie vive.',
-        state.done ? '' : ' O lugar de cada foto aparece quando o jogo terminar.'),
+        revealed() ? '' : ' O lugar de cada foto aparece quando o jogo terminar.'),
       viewer, grid, status, el('div', { class: 'actions' }, more),
     ).classList.add('gallery-modal');
     loadPage();
@@ -432,7 +445,7 @@
         el('img', { src: photoSize(photo.url, 'large'), alt: `Foto de ${sp.common}` }),
         el('figcaption', { class: 'photo-credit' },
           photo.attribution,
-          ...(state.done ? [
+          ...(revealed() ? [
             obs.place_guess ? ` · ${obs.place_guess}` : '',
             ' · ', el('a', { href: `https://www.inaturalist.org/observations/${obs.id}`, target: '_blank', rel: 'noopener', text: 'ver a observação' }),
           ] : [])),

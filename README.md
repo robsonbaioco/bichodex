@@ -8,7 +8,10 @@ Catálogo dos seres vivos ao seu redor: informe sua localização e veja os anim
 
 - Catálogo por localização, com filtro por categoria, raio, raridade, risco de extinção e nome.
 - Ficha de cada espécie, com fotos, classificação e quantidade de registros na região.
-- Marcação de espécies avistadas (na natureza ou no zoológico) e cartão de conquista para compartilhar.
+- Marcação de espécies avistadas (na natureza ou no zoológico), com dia e horário editáveis, e cartão de conquista para compartilhar.
+- Página de colorir: a foto da espécie avistada vira um desenho para pintar na tela ou imprimir em preto e branco.
+- Lista das espécies do mapa com a distância aproximada até você.
+- Tamanho da letra ajustável (Normal, Grande, Enorme).
 - Bicho do dia e datas comemorativas com o animal associado.
 - Abas de navegação: Explorar, Mapa dos registros recentes, Minha dex (álbum com progresso por categoria) e Missões (missões diárias, sequência e medalhas).
 - Baralho de descobertas e modo trilha para marcar várias espécies em sequência.

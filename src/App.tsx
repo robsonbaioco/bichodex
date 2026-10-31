@@ -10,6 +10,7 @@ import {
 } from './api'
 import { CATEGORIES, type Category } from './categories'
 import { Backup } from './components/Backup'
+import { Coloring } from './components/Coloring'
 import { Deck } from './components/Deck'
 import { Dex } from './components/Dex'
 import { Games } from './components/Games'
@@ -21,11 +22,20 @@ import { SpeciesCard } from './components/SpeciesCard'
 import { SpeciesDetail } from './components/SpeciesDetail'
 import { ThemePicker } from './components/ThemePicker'
 import { Trail, type TrailState } from './components/Trail'
-import { RARITIES, displayName, formatNumber, type Rarity, type SeenWhere } from './format'
+import { RARITIES, displayName, formatNumber, localDateTime, type Rarity, type SeenWhere } from './format'
 import { dailyCategory, loadProgress, withOpened, withSighting, withoutSighting } from './missions'
 import type { SpecialDay } from './specialDays'
 import { load, save } from './storage'
-import { applyTheme, loadIntensity, loadTheme, type Intensity, type ThemeId } from './themes'
+import {
+  applyTextSize,
+  applyTheme,
+  loadIntensity,
+  loadTextSize,
+  loadTheme,
+  type Intensity,
+  type TextSize,
+  type ThemeId,
+} from './themes'
 
 // o mapa traz uma biblioteca grande: só é baixado quando a aba é aberta
 const MapView = lazy(() => import('./components/MapView'))
@@ -90,6 +100,8 @@ export default function App() {
   const [seen, setSeen] = useState<number[]>(() => load('seen', []))
   /** Entre as avistadas, as que foram vistas no zoológico (as demais, na natureza). */
   const [zooIds, setZooIds] = useState<number[]>(() => load('zoo', []))
+  /** Quando cada espécie foi vista (data e hora locais, AAAA-MM-DDTHH:MM); começa no momento da marcação e pode ser mudado. */
+  const [seenAt, setSeenAt] = useState<Record<number, string>>(() => load('seenAt', {}))
   /** Grupo de uma data comemorativa usado como filtro, no lugar de uma categoria fixa. */
   const [special, setSpecial] = useState<Category | null>(null)
   const [worldResults, setWorldResults] = useState<Taxon[]>([])
@@ -101,6 +113,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(selectedFromHash)
   const [reloadKey, setReloadKey] = useState(0)
   const [sharing, setSharing] = useState<Taxon | null>(null)
+  /** Espécie aberta na página de colorir. */
+  const [coloring, setColoring] = useState<Taxon | null>(null)
   const [rarityId, setRarityId] = useState('all')
   const [threatened, setThreatened] = useState(false)
   /** Páginas grandes, ligadas na primeira busca por nome, que percorre o catálogo inteiro da área. */
@@ -109,6 +123,7 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
   const [pickingTheme, setPickingTheme] = useState(false)
   const [intensity, setIntensity] = useState<Intensity>(loadIntensity)
+  const [textSize, setTextSize] = useState<TextSize>(loadTextSize)
   const [view, setView] = useState<View>(() => viewFromHash() ?? 'explorar')
   const [progress, setProgress] = useState(loadProgress)
   const [deckOpen, setDeckOpen] = useState(false)
@@ -144,7 +159,9 @@ export default function App() {
   }, [radiusDraft])
   useEffect(() => save('seen', seen), [seen])
   useEffect(() => save('zoo', zooIds), [zooIds])
+  useEffect(() => save('seenAt', seenAt), [seenAt])
   useEffect(() => applyTheme(theme, intensity), [theme, intensity])
+  useEffect(() => applyTextSize(textSize), [textSize])
   useEffect(() => save('progress', progress), [progress])
   useEffect(() => save('trail', trail), [trail])
   useEffect(() => {
@@ -298,11 +315,13 @@ export default function App() {
     if (seenSet.has(taxon.id)) {
       setSeen((current) => current.filter((id) => id !== taxon.id))
       setWhere(taxon.id, 'wild')
+      setSeenAt(({ [taxon.id]: _, ...rest }) => rest)
       setProgress((current) => withoutSighting(current, taxon.id))
       setJustSeen((current) => (current?.taxon.id === taxon.id ? null : current))
     } else {
       setSeen((current) => [...current, taxon.id])
       setWhere(taxon.id, where)
+      setSeenAt((current) => ({ ...current, [taxon.id]: localDateTime(new Date()) }))
       setProgress((current) => withSighting(current, taxon))
       if (feedback === 'card' && place) setSharing(taxon)
       else if (feedback !== 'none') setJustSeen({ taxon, ordinal: seen.length + 1 })
@@ -314,6 +333,10 @@ export default function App() {
     const timer = setTimeout(() => setJustSeen(null), 6000)
     return () => clearTimeout(timer)
   }, [justSeen])
+
+  const changeSeenAt = useCallback((id: number, value: string) => {
+    if (value) setSeenAt((current) => ({ ...current, [id]: value }))
+  }, [])
 
   function startTrail() {
     if (!place) return
@@ -344,6 +367,8 @@ export default function App() {
   }
 
   const closeSharing = useCallback(() => setSharing(null), [])
+  const closeColoring = useCallback(() => setColoring(null), [])
+  const coloringSheet = coloring && <Coloring taxon={coloring} onClose={closeColoring} />
 
   const closeDetail = useCallback(() => {
     if (openedHere.current) {
@@ -379,8 +404,11 @@ export default function App() {
       maxCount={topCount}
       seen={seenSet.has(selectedId)}
       where={zooIds.includes(selectedId) ? 'zoo' : 'wild'}
+      seenAt={seenAt[selectedId]}
+      onSeenAtChange={(value) => changeSeenAt(selectedId, value)}
       onToggleSeen={(taxon) => toggleSeen(taxon, 'wild', 'card')}
       onShare={place ? setSharing : undefined}
+      onColor={setColoring}
       onClose={closeDetail}
     />
   )
@@ -391,6 +419,8 @@ export default function App() {
       intensity={intensity}
       onPick={setTheme}
       onIntensity={setIntensity}
+      textSize={textSize}
+      onTextSize={setTextSize}
       onClose={() => setPickingTheme(false)}
     />
   )
@@ -418,12 +448,13 @@ export default function App() {
               Sua localização é arredondada (~1 km) e usada apenas para consultar as espécies da área.
             </p>
             <button className="link-btn theme-link" onClick={() => setPickingTheme(true)}>
-              🎨 Mudar o tema
+              🎨 Mudar o tema e o tamanho da letra
             </button>
             <Backup importOnly />
           </div>
         </main>
         {detail}
+        {coloringSheet}
         {themePicker}
       </>
     )
@@ -504,7 +535,7 @@ export default function App() {
           <span className="seen-counter" title="Espécies que você marcou como avistadas">
             ✓ {formatNumber(seen.length)}
           </span>
-          <button className="theme-btn" onClick={() => setPickingTheme(true)} aria-label="Escolher tema" title="Tema">
+          <button className="theme-btn" onClick={() => setPickingTheme(true)} aria-label="Tema e tamanho da letra" title="Tema e tamanho da letra">
             <span aria-hidden="true">🎨</span>
           </button>
         </div>
@@ -581,7 +612,7 @@ export default function App() {
             <div className="notice notice-error" role="alert">
               Não foi possível consultar as espécies. Verifique sua conexão.{' '}
               <button className="btn" onClick={() => setReloadKey((k) => k + 1)}>
-                Tentar de novo
+                🔄 Tentar de novo
               </button>
             </div>
           )}
@@ -678,7 +709,7 @@ export default function App() {
               onStartDeck={() => setDeckOpen(true)}
             />
           )}
-          {view === 'jogos' && <Games place={place} radius={radius} />}
+          {view === 'jogos' && <Games place={place} radius={radius} seen={seen} onColor={setColoring} />}
           {view === 'missoes' && (
             <Missions
               progress={progress}
@@ -711,7 +742,7 @@ export default function App() {
               setJustSeen(null)
             }}
           >
-            Compartilhar
+            📤 Compartilhar
           </button>
           <button className="seen-toast-close" onClick={() => setJustSeen(null)} aria-label="Fechar aviso">
             ✕
@@ -756,6 +787,8 @@ export default function App() {
 
       {detail}
 
+      {coloringSheet}
+
       {sharing && (
         <ShareAchievement
           taxon={sharing}
@@ -763,6 +796,8 @@ export default function App() {
           ordinal={seen.indexOf(sharing.id) + 1 || seen.length}
           where={zooIds.includes(sharing.id) ? 'zoo' : 'wild'}
           onWhereChange={(where) => setWhere(sharing.id, where)}
+          seenAt={seenAt[sharing.id]}
+          onSeenAtChange={(value) => changeSeenAt(sharing.id, value)}
           onClose={closeSharing}
         />
       )}

@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import type { Place } from '../api'
+import { fetchTaxaByIds, type Place, type Taxon } from '../api'
+import { categoryOf } from '../categories'
+import { displayName } from '../format'
 import { Game2048 } from './Game2048'
 
 type GameInfo = {
@@ -17,6 +19,12 @@ const GAMES: GameInfo[] = [
     emoji: '🧩',
     name: 'Bicho 2048',
     description: 'Junte números iguais até chegar em 2048, com fotos dos animais da sua região nos blocos.',
+  },
+  {
+    id: 'colorir',
+    emoji: '🖍️',
+    name: 'Colorir os bichos',
+    description: 'Pinte na tela ou imprima em preto e branco um desenho de cada bicho que você já avistou.',
   },
   {
     id: 'parentes',
@@ -57,8 +65,61 @@ function gameFromHash(): string | null {
   return location.hash.match(/^#\/jogos\/([\w-]+)$/)?.[1] ?? null
 }
 
+/** Escolha de qual bicho avistado vai para a página de colorir. */
+function ColoringPicker({ seen, onColor }: { seen: number[]; onColor: (taxon: Taxon) => void }) {
+  const [taxa, setTaxa] = useState<Taxon[] | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    if (!seen.length) return setTaxa([])
+    const controller = new AbortController()
+    setFailed(false)
+    fetchTaxaByIds(seen, controller.signal)
+      .then((found) => {
+        // os mais recentes primeiro
+        const order = new Map(seen.map((id, i) => [id, i]))
+        setTaxa(found.sort((a, b) => (order.get(b.id) ?? 0) - (order.get(a.id) ?? 0)))
+      })
+      .catch((error) => error.name !== 'AbortError' && setFailed(true))
+    return () => controller.abort()
+  }, [seen])
+
+  if (failed) return <p className="notice notice-error">Não foi possível carregar os seus bichos. Verifique sua conexão.</p>
+  if (!taxa) return <p className="notice">Carregando os bichos que você avistou…</p>
+  if (!taxa.length)
+    return (
+      <p className="notice">
+        Você ainda não marcou nenhum bicho como avistado. Marque um em Explorar e volte aqui para colorir!
+      </p>
+    )
+  return (
+    <>
+      <p className="fineprint">Escolha um bicho. A foto vira um desenho para pintar aqui ou imprimir.</p>
+      <div className="coloring-pick">
+        {taxa.map((taxon) => {
+          const photo = taxon.default_photo?.square_url
+          return (
+            <button key={taxon.id} className="coloring-pick-item" onClick={() => onColor(taxon)}>
+              {photo ? <img src={photo} alt="" loading="lazy" /> : <span aria-hidden="true">{categoryOf(taxon).emoji}</span>}
+              <span>{displayName(taxon)}</span>
+            </button>
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+interface Props {
+  place: Place
+  radius: number
+  /** Espécies avistadas, para a página de colorir. */
+  seen: number[]
+  onColor: (taxon: Taxon) => void
+}
+
 /** Tela "Jogos": novos jogos entram na lista acima. */
-export function Games({ place, radius }: { place: Place; radius: number }) {
+export function Games({ place, radius, seen, onColor }: Props) {
   const [openGame, setOpenGame] = useState<string | null>(gameFromHash)
   const game = GAMES.find((g) => g.id === openGame)
 
@@ -80,6 +141,11 @@ export function Games({ place, radius }: { place: Place; radius: number }) {
         </button>
         {game.src ? (
           <iframe style={FRAME_STYLE} src={game.src} title={game.name} />
+        ) : game.id === 'colorir' ? (
+          <>
+            <h2>🖍️ Colorir os bichos</h2>
+            <ColoringPicker seen={seen} onColor={onColor} />
+          </>
         ) : (
           <Game2048 place={place} radius={radius} />
         )}

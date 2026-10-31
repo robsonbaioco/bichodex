@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchTaxon, type Photo, type Taxon } from '../api'
 import { categoryOf } from '../categories'
-import { displayName, type SeenWhere } from '../format'
+import { displayName, formatSeenAt, type SeenWhere } from '../format'
 import { CARD_SIZES, SITE_URL, drawCard, loadImage, type CardFormat } from '../shareCard'
 import { currentTheme } from '../themes'
+import { SeenAtField } from './SpeciesDetail'
 
 type Source = 'catalog' | 'own'
 
@@ -34,10 +35,13 @@ interface Props {
   ordinal: number
   where: SeenWhere
   onWhereChange: (where: SeenWhere) => void
+  /** Data e hora do avistamento (AAAA-MM-DDTHH:MM). */
+  seenAt?: string
+  onSeenAtChange: (value: string) => void
   onClose: () => void
 }
 
-export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, onClose }: Props) {
+export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, seenAt, onSeenAtChange, onClose }: Props) {
   /** Fotos do catálogo que podem ilustrar o cartão; null enquanto a lista é consultada. */
   const [catalogPhotos, setCatalogPhotos] = useState<Photo[] | null>(null)
   const [catalogPhoto, setCatalogPhoto] = useState<Photo | null>(null)
@@ -52,6 +56,8 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
   const name = displayName(taxon)
   const category = categoryOf(taxon)
   const atZoo = where === 'zoo'
+  /** Só o dia vai para o cartão; o horário fica guardado no aparelho. */
+  const seenDay = seenAt ? formatSeenAt(seenAt.split('T')[0]) : ''
 
   useEffect(() => {
     // captura antes da ficha da espécie, que também fecha com Esc
@@ -117,7 +123,7 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
         categoryLabel: category.label,
         categoryEmoji: category.emoji,
         color: category.color,
-        place: atZoo ? 'No zoológico' : place,
+        place: [atZoo ? 'No zoológico' : place, seenDay].filter(Boolean).join(' · '),
         seal: atZoo ? 'AVISTADA NO ZOOLÓGICO!' : 'ESPÉCIE AVISTADA!',
         ordinal,
         credit: usingCatalog && photo ? catalogPhoto?.attribution : undefined,
@@ -132,7 +138,7 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
     return () => {
       cancelled = true
     }
-  }, [catalogReady, source, ownPhoto, format, catalogUrl, catalogPhoto, taxon, name, category, place, atZoo, ordinal])
+  }, [catalogReady, source, ownPhoto, format, catalogUrl, catalogPhoto, taxon, name, category, place, atZoo, ordinal, seenDay])
 
   const fileName = `bichodex-${slug(name) || taxon.id}.jpg`
   const file = useMemo(() => image && new File([image], fileName, { type: 'image/jpeg' }), [image, fileName])
@@ -189,6 +195,8 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
             </button>
           </div>
 
+          <SeenAtField value={seenAt} onChange={onSeenAtChange} />
+
           <div className="segmented" role="group" aria-label="Foto do cartão">
             <button
               className={source === 'catalog' ? 'is-active' : ''}
@@ -200,7 +208,7 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
                   : undefined
               }
             >
-              Foto do catálogo
+              🖼️ Foto do catálogo
             </button>
             <button
               className={source === 'own' ? 'is-active' : ''}
@@ -216,7 +224,7 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
           )}
           {ownPhoto && source === 'own' && (
             <button className="link-btn" onClick={() => fileInput.current?.click()}>
-              Trocar foto
+              🔁 Trocar foto
             </button>
           )}
           <input
@@ -236,10 +244,10 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
 
           <div className="segmented" role="group" aria-label="Formato do cartão">
             <button className={format === 'feed' ? 'is-active' : ''} onClick={() => setFormat('feed')}>
-              Feed (4:5)
+              ▭ Feed (4:5)
             </button>
             <button className={format === 'stories' ? 'is-active' : ''} onClick={() => setFormat('stories')}>
-              Stories (9:16)
+              ▯ Stories (9:16)
             </button>
           </div>
 
@@ -257,12 +265,12 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
           <div className="share-actions">
             {canShareFile && (
               <button className="btn btn-primary btn-lg" onClick={share}>
-                Compartilhar
+                📤 Compartilhar
               </button>
             )}
             {downloadUrl ? (
               <a className={`btn btn-lg${canShareFile ? '' : ' btn-primary'}`} href={downloadUrl} download={fileName}>
-                Baixar imagem
+                ⬇️ Baixar imagem
               </a>
             ) : (
               <button className="btn btn-lg" disabled>

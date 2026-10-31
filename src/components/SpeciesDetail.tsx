@@ -9,6 +9,7 @@ import {
   formatNumber,
   frequencyLabel,
   htmlToText,
+  localDateTime,
   type SeenWhere,
 } from '../format'
 
@@ -21,6 +22,24 @@ const RANKS: Record<string, string> = {
   genus: 'Gênero',
 }
 
+/**
+ * Dia e horário em que a pessoa viu a espécie. Já vem com o momento da marcação, mas dá para voltar no
+ * tempo e registrar um bicho visto antes (não aceita datas futuras).
+ */
+export function SeenAtField({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
+  return (
+    <label className="seen-at">
+      <span>📅 Quando você viu?</span>
+      <input
+        type="datetime-local"
+        value={value ?? ''}
+        max={localDateTime(new Date())}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
+  )
+}
+
 interface Props {
   id: number
   /** Entrada da lista regional, quando a espécie já foi carregada nela. */
@@ -30,13 +49,31 @@ interface Props {
   seen: boolean
   /** Onde foi o avistamento, quando a espécie já está marcada. */
   where?: SeenWhere
+  /** Data e hora do avistamento (AAAA-MM-DDTHH:MM). */
+  seenAt?: string
+  onSeenAtChange: (value: string) => void
   onToggleSeen: (taxon: Taxon) => void
   /** Ausente enquanto não há local definido, já que o cartão de conquista mostra onde foi o avistamento. */
   onShare?: (taxon: Taxon) => void
+  /** Abre a página de colorir da espécie. */
+  onColor?: (taxon: Taxon) => void
   onClose: () => void
 }
 
-export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onToggleSeen, onShare, onClose }: Props) {
+export function SpeciesDetail({
+  id,
+  entry,
+  number,
+  maxCount,
+  seen,
+  where,
+  seenAt,
+  onSeenAtChange,
+  onToggleSeen,
+  onShare,
+  onColor,
+  onClose,
+}: Props) {
   const [detail, setDetail] = useState<TaxonDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const [photoIndex, setPhotoIndex] = useState(0)
@@ -134,14 +171,20 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onTogg
                   onClick={() => onToggleSeen(taxon)}
                   aria-pressed={seen}
                 >
-                  {seen ? (where === 'zoo' ? '✓ Avistado no zoológico' : '✓ Avistado') : 'Marcar como avistado'}
+                  {seen ? (where === 'zoo' ? '✓ Avistado no zoológico' : '✓ Avistado') : '👁️ Marcar como avistado'}
                 </button>
                 {seen && onShare && (
                   <button className="btn" onClick={() => onShare(taxon)}>
-                    Compartilhar conquista
+                    📤 Compartilhar conquista
+                  </button>
+                )}
+                {seen && onColor && (
+                  <button className="btn" onClick={() => onColor(taxon)}>
+                    🖍️ Colorir ou imprimir
                   </button>
                 )}
               </div>
+              {seen && <SeenAtField value={seenAt} onChange={onSeenAtChange} />}
 
               <dl className="attrs">
                 <div>
@@ -213,14 +256,14 @@ export function SpeciesDetail({ id, entry, number, maxCount, seen, where, onTogg
 
               <div className="links">
                 <a href={`https://www.inaturalist.org/taxa/${taxon.id}`} target="_blank" rel="noreferrer">
-                  Ver no iNaturalist ↗
+                  🌐 Ver no iNaturalist ↗
                 </a>
                 <a
                   href={`https://pt.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(taxon.name)}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Wikipédia ↗
+                  📚 Wikipédia ↗
                 </a>
               </div>
             </div>

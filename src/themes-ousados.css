@@ -502,7 +502,7 @@
 }
 
 :root[data-theme='campo'] .card-body .sci {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
 }
 
 :root[data-theme='campo'] .tag {
@@ -581,7 +581,7 @@
     repeating-linear-gradient(0deg, rgb(0 0 0 / 0.35) 0 1px, transparent 1px 3px),
     radial-gradient(ellipse at 50% 20rem, #06300f 0, transparent 60rem);
   font-family: var(--mono);
-  font-size: 118%;
+  font-size: calc(118% * var(--text-scale, 1));
   line-height: 1.2;
   text-shadow: 0 0 5px rgb(57 255 122 / 0.45);
 }
@@ -1177,7 +1177,7 @@
   background: var(--accent);
   border: 0;
   text-transform: uppercase;
-  font-size: 0.68rem;
+  font-size: 0.8rem;
   letter-spacing: 0.05em;
 }
 

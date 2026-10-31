@@ -227,7 +227,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
           ↻ Novo jogo
         </button>
         <button className="btn" onClick={() => { setMode(null); setGame(null) }}>
-          Trocar modo
+          🔁 Trocar modo
         </button>
       </div>
 

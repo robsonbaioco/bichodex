@@ -74,3 +74,16 @@ export function excerpt(text: string, max = 190): string {
 
 /** Onde a pessoa viu a espécie. */
 export type SeenWhere = 'wild' | 'zoo'
+
+/** Data e hora locais no formato do campo datetime-local (AAAA-MM-DDTHH:MM). */
+export function localDateTime(date: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}T${p(date.getHours())}:${p(date.getMinutes())}`
+}
+
+/** "12/10/2026 às 14:30", a partir do valor de localDateTime. */
+export function formatSeenAt(value: string): string {
+  const [day, time] = value.split('T')
+  const [y, m, d] = day.split('-')
+  return time ? `${d}/${m}/${y} às ${time}` : `${d}/${m}/${y}`
+}

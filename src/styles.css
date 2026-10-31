@@ -30,6 +30,8 @@
   --font-display: inherit;
   --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* base um pouco maior que o padrão do navegador (17 px), multiplicada pelo tamanho de letra escolhido */
+  font-size: calc(106.25% * var(--text-scale, 1));
   line-height: 1.45;
 }
 
@@ -170,7 +172,7 @@ select {
   gap: 0.3em;
   padding: 0.15rem 0.55rem;
   border-radius: var(--radius-pill);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
   background: color-mix(in srgb, var(--c) 20%, var(--surface));
@@ -430,7 +432,7 @@ select {
 
 .chip-count {
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -567,7 +569,7 @@ select {
   left: 0.4rem;
   top: 0.4rem;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
   padding: 0.15rem 0.45rem;
   border-radius: 6px;
@@ -603,7 +605,7 @@ select {
 
 .card-count {
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -807,7 +809,7 @@ select {
 
 .credit {
   padding: 0.4rem 1.1rem 0;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   color: var(--muted);
 }
 
@@ -864,7 +866,7 @@ select {
 
 .stats dt,
 .lineage dt {
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
@@ -1041,7 +1043,7 @@ select {
   position: absolute;
   left: 0.4rem;
   bottom: 0.4rem;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 700;
   padding: 0.15rem 0.45rem;
   border-radius: 6px;
@@ -1185,7 +1187,7 @@ select {
 }
 
 .highlight-kicker {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;

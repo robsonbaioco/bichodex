@@ -51,10 +51,10 @@ export function InstallPrompt() {
       </div>
       <div className="install-actions">
         <button className="btn" onClick={() => setDismissed(true)}>
-          Agora não
+          ✕ Agora não
         </button>
         <button className="btn btn-primary" onClick={install}>
-          Instalar
+          📲 Instalar
         </button>
       </div>
     </aside>

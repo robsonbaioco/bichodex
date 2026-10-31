@@ -100,7 +100,7 @@ export function Dex({ seen, counts, regional, onOpen, onToggleSeen, onStartDeck 
             poucos minutos.
           </p>
           <button className="btn btn-primary" onClick={onStartDeck} disabled={!regional.length}>
-            Abrir o baralho
+            🃏 Abrir o baralho
           </button>
         </div>
       ) : (

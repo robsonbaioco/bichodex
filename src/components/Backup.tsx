@@ -77,10 +77,10 @@ export function Backup({ importOnly = false }: Props) {
           </p>
           <div className="backup-actions">
             <button className="btn btn-primary" onClick={confirm}>
-              Substituir e importar
+              📥 Substituir e importar
             </button>
             <button className="btn" onClick={() => setPending(null)}>
-              Cancelar
+              ✕ Cancelar
             </button>
           </div>
         </div>

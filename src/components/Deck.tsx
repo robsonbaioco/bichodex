@@ -126,7 +126,7 @@ export function Deck({ items, onSeen, onClose }: Props) {
             </div>
             <div className="deck-actions">
               <button className="btn btn-lg" onClick={() => answer(false)}>
-                Ainda não
+                ✋ Ainda não
               </button>
               <button className="btn btn-primary btn-lg" onClick={() => answer(true)}>
                 ✓ Já vi
@@ -144,7 +144,7 @@ export function Deck({ items, onSeen, onClose }: Props) {
                   : 'espécies marcadas como avistadas neste baralho.'}
             </p>
             <button className="btn btn-primary btn-lg" onClick={onClose}>
-              Fechar
+              ✕ Fechar
             </button>
           </div>
         )}

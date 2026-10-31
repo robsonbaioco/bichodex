@@ -40,6 +40,9 @@
     if (!practice) BG.save(`${GAME}:day:${today}`, state);
   }
 
+  // Perdeu e ainda não pediu para ver a resposta.
+  const veiled = () => state.done && !state.won && !state.revealed;
+
   // ---------- renderização ----------
 
   function byName(sci) {
@@ -66,7 +69,8 @@
     renderTries();
     $('btn-submit').hidden = state.done;
     $('result').hidden = !state.done;
-    if (state.done) renderResult();
+    if (veiled()) $('result').replaceChildren(BG.lossScreen(reveal));
+    else if (state.done) renderResult();
   }
 
   function lastFeedback() {
@@ -77,12 +81,13 @@
     const list = $('options');
     list.classList.toggle('locked', state.done);
     const fb = lastFeedback();
-    const order = state.done ? puzzle.answer.map((a) => a.sci) : state.order;
+    const showAnswer = state.done && !veiled();
+    const order = showAnswer ? puzzle.answer.map((a) => a.sci) : state.order;
     list.replaceChildren(...order.map((sci, i) => {
       const o = byName(sci);
       let cls = 'option';
       let hint = '';
-      if (state.done) cls += ' good';
+      if (showAnswer) cls += ' good';
       else if (fb && fb.order[i] === sci) {
         const right = puzzle.answer.findIndex((a) => a.sci === sci);
         if (right === i) cls += ' good';
@@ -179,8 +184,16 @@
     render();
     if (state.done) {
       $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (!practice) setTimeout(showStats, 1200);
+      if (!practice && state.won) setTimeout(showStats, 1200);
     }
+  }
+
+  function reveal() {
+    state.revealed = true;
+    persist();
+    render();
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!practice) setTimeout(showStats, 1500);
   }
 
   function shareResult() {

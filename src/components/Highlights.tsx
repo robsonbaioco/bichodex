@@ -85,7 +85,7 @@ function SpecialDayCard({ day, place, radius, onOpen, onExploreGroup }: { day: S
             </button>
           )}
           <button className="btn" onClick={() => onOpen(day.taxonId)}>
-            Ver ficha
+            📖 Ver ficha
           </button>
         </div>
       </div>
@@ -146,7 +146,7 @@ export function Highlights({ place, radius, seen, onOpen, onMarkSeen, onShare, o
             <div className="highlight-actions">
               {dailySeen ? (
                 <button className="btn btn-primary" onClick={() => onShare(daily)}>
-                  Compartilhar
+                  📤 Compartilhar
                 </button>
               ) : (
                 <button className="btn btn-primary" onClick={() => onMarkSeen(daily)}>
@@ -154,7 +154,7 @@ export function Highlights({ place, radius, seen, onOpen, onMarkSeen, onShare, o
                 </button>
               )}
               <button className="btn" onClick={() => onOpen(daily.id)}>
-                Ver ficha
+                📖 Ver ficha
               </button>
             </div>
           </div>

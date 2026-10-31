@@ -24,7 +24,7 @@ export function UpdatePrompt() {
       </div>
       <div className="install-actions">
         <button className="btn btn-primary" onClick={() => location.reload()}>
-          Atualizar
+          🔄 Atualizar
         </button>
       </div>
     </aside>

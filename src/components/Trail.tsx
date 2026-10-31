@@ -126,7 +126,7 @@ export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
             </ul>
             <div className="trail-actions">
               <button className="btn btn-primary btn-lg" onClick={() => setEnded(Date.now())}>
-                Encerrar trilha
+                🏁 Encerrar trilha
               </button>
             </div>
           </>
@@ -144,10 +144,10 @@ export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
               </ul>
             )}
             <button className="btn btn-primary btn-lg" onClick={share}>
-              {copied ? 'Resumo copiado' : 'Compartilhar resumo'}
+              {copied ? '✓ Resumo copiado' : '📤 Compartilhar resumo'}
             </button>
             <button className="btn btn-lg" onClick={onFinish}>
-              Fechar
+              ✕ Fechar
             </button>
           </div>
         )}

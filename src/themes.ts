@@ -165,6 +165,26 @@ export function currentTheme(): Theme {
   return themeById(document.documentElement.dataset.theme)
 }
 
+/** Tamanho da letra do app inteiro: multiplica a fonte base (os tamanhos no CSS são em rem). */
+export type TextSize = 'normal' | 'grande' | 'enorme'
+
+export const TEXT_SIZES: { id: TextSize; label: string; scale: number }[] = [
+  { id: 'normal', label: 'Normal', scale: 1 },
+  { id: 'grande', label: 'Grande', scale: 1.15 },
+  { id: 'enorme', label: 'Enorme', scale: 1.3 },
+]
+
+export function loadTextSize(): TextSize {
+  const stored = load<string>('textSize', 'normal')
+  return TEXT_SIZES.find((size) => size.id === stored)?.id ?? 'normal'
+}
+
+export function applyTextSize(size: TextSize): void {
+  const scale = TEXT_SIZES.find((item) => item.id === size)?.scale ?? 1
+  document.documentElement.style.setProperty('--text-scale', String(scale))
+  save('textSize', size)
+}
+
 export function applyTheme(id: ThemeId, intensity: Intensity = 'forte'): void {
   const theme = themeById(id)
   document.documentElement.dataset.theme = theme.id

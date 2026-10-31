@@ -71,7 +71,7 @@ export function LocationPicker({ onPick }: { onPick: (place: Place) => void }) {
           aria-label="Buscar cidade"
         />
         <button className="btn" disabled={searching}>
-          {searching ? '…' : 'Buscar'}
+          {searching ? '…' : '🔍 Buscar'}
         </button>
       </form>
 
