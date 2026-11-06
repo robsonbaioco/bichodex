@@ -4,6 +4,7 @@ Guia para quem vai dar manutenção no Bichodex. O [README da raiz](../README.md
 
 | Documento | Para que serve |
 |---|---|
+| [TypeScript e React](typescript-e-react.md) | Para quem nunca usou: o necessário para ler e alterar este código, com exemplos dele |
 | [Arquitetura](arquitetura.md) | Visão geral, pastas, papel de cada arquivo, estado do App, navegação |
 | [Dados e APIs](dados-e-apis.md) | O que fica salvo no aparelho, backup, APIs externas, service worker e atualização |
 | [Funcionalidades](funcionalidades.md) | Como cada tela funciona: lista, ficha, cartão de conquista, colorir, baralho, trilha, mapa, dex, missões, destaques, jogos, temas |

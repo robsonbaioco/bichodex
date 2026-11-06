@@ -1,5 +1,7 @@
 # Arquitetura
 
+> Nunca mexeu com TypeScript ou React? Leia antes [TypeScript e React](typescript-e-react.md).
+
 PWA em **React 19 + TypeScript + Vite**, sem backend. Os dados de espécies vêm da API pública do iNaturalist; o que a pessoa marca fica no `localStorage` do aparelho. O app é publicado como site estático no GitHub Pages.
 
 ```
