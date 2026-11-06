@@ -18,7 +18,7 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// Toda resposta da rede vira a cópia em cache; sem rede, serve a cópia (ou a página inicial, numa navegação).
+// Toda resposta de sucesso da rede vira a cópia em cache; sem rede, serve a cópia (ou a página inicial, numa navegação).
 self.addEventListener('fetch', (event) => {
   const request = event.request
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return
@@ -31,9 +31,11 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     network
       .then((response) => {
-        // grava qualquer resposta, inclusive 404/500; o cache só é usado quando a rede falha de vez
-        const copy = response.clone()
-        caches.open(CACHE).then((cache) => cache.put(request, copy))
+        // grava só respostas de sucesso: um 404/500 passageiro não pode substituir a cópia boa do offline
+        if (response.ok) {
+          const copy = response.clone()
+          caches.open(CACHE).then((cache) => cache.put(request, copy))
+        }
         return response
       })
       .catch(async () => {

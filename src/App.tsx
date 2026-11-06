@@ -27,7 +27,7 @@ import { SpeciesCard } from './components/SpeciesCard'
 import { SpeciesDetail } from './components/SpeciesDetail'
 import { ThemePicker } from './components/ThemePicker'
 import { Trail, type TrailState } from './components/Trail'
-import { RARITIES, displayName, formatNumber, localDateTime, type Rarity, type SeenWhere } from './format'
+import { RARITIES, displayName, formatNumber, localDateTime, normalizeText, type Rarity, type SeenWhere } from './format'
 import { dailyCategory, loadProgress, withOpened, withSighting, withoutSighting } from './missions'
 import type { SpecialDay } from './specialDays'
 import { load, save } from './storage'
@@ -91,16 +91,6 @@ function selectedFromHash(): number | null {
   const match = location.hash.match(/^#\/especie\/(\d+)$/)
   return match ? Number(match[1]) : null
 }
-
-/**
- * Texto sem acentos e em minúsculas, para a busca por nome ignorar acentuação ("sabia" acha "Sabiá").
- * A classe do replace contém os caracteres de acento combinantes U+0300 a U+036F, escritos literalmente.
- */
-const normalize = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
 
 /** Faixa de registros de uma raridade por extenso, para a linha de resumo ("5 a 24 registros"). */
 function rarityRange(rarity: Rarity): string {
@@ -349,13 +339,13 @@ export default function App() {
   // O que aparece na grade: a lista carregada, com o número do ranking, filtrada por raridade e pelo nome
   // (popular ou científico). A raridade é filtrada aqui porque a API não tem filtro por quantidade de registros.
   const visible = useMemo(() => {
-    const term = normalize(query.trim())
+    const term = normalizeText(query.trim())
     return list.items
       .map((entry, index) => ({ entry, number: numberAt(index) }))
       .filter(
         ({ entry }) =>
           (!rarity || (entry.count >= rarity.min && entry.count <= rarity.max)) &&
-          (!term || normalize(`${entry.taxon.preferred_common_name ?? ''} ${entry.taxon.name}`).includes(term)),
+          (!term || normalizeText(`${entry.taxon.preferred_common_name ?? ''} ${entry.taxon.name}`).includes(term)),
       )
   }, [list.items, query, rarity, numberAt])
 
@@ -808,7 +798,7 @@ export default function App() {
 
       {trail && !trailOpen && (
         <button className="trail-chip" onClick={() => setTrailOpen(true)}>
-          🥾 Trilha em andamento · {trail.found.length}
+          {trail.ended == null ? '🥾 Trilha em andamento' : '🏁 Trilha encerrada'} · {trail.found.length}
         </button>
       )}
 
@@ -860,6 +850,7 @@ export default function App() {
           items={list.items}
           onToggle={toggleTrail}
           onMinimize={() => setTrailOpen(false)}
+          onEnd={() => setTrail((current) => current && { ...current, ended: Date.now() })}
           onFinish={() => {
             setTrail(null)
             setTrailOpen(false)

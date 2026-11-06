@@ -23,7 +23,8 @@ src/
   api.ts                todas as chamadas de rede e os tipos (Taxon, Place, Photo...)
   storage.ts            load/save no localStorage + backup (exportar/importar)
   categories.ts         categorias (Mamíferos, Aves...) e categoryOf(taxon)
-  format.ts             formatação para a tela: números, nomes, risco, raridade, datas
+  format.ts             formatação para a tela: números, nomes, risco, raridade, datas, busca sem acento, slug
+  photos.ts             fotos reaproveitáveis (isReusable) e URL grande (largeUrl), do cartão e do colorir
   themes.ts             lista de temas, intensidade e tamanho de letra; applyTheme()
   missions.ts           missões diárias, sequência e medalhas (funções puras)
   highlights.ts         bicho do dia, datas comemorativas do dia, lembretes

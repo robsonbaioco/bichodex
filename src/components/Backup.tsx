@@ -50,7 +50,7 @@ export function Backup({ importOnly = false }: Props) {
     try {
       restoreBackup(pending)
     } catch {
-      setError('Não foi possível gravar os dados neste navegador.')
+      setError('Não foi possível gravar os dados neste navegador. Os dados que já estavam aqui foram mantidos.')
       setPending(null)
       return
     }

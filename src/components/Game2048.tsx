@@ -253,7 +253,8 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
           <span>Maior bloco</span>
           <strong>{maxTile}</strong>
         </div>
-        <span className="g2048-mode-tag">{mode === 'normal' ? '🏆 Normal' : '♾️ Infinito'}</span>
+        {/* a etiqueta segue o modo da partida (muda ao continuar no infinito); "Novo jogo" recomeça no modo escolhido */}
+        <span className="g2048-mode-tag">{game.mode === 'normal' ? '🏆 Normal' : '♾️ Infinito'}</span>
         <button className="btn" onClick={() => start(mode)}>
           ↻ Novo jogo
         </button>

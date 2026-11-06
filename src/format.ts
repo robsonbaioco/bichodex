@@ -96,3 +96,20 @@ export function formatSeenAt(value: string): string {
   const [y, m, d] = day.split('-')
   return time ? `${d}/${m}/${y} às ${time}` : `${d}/${m}/${y}`
 }
+
+/**
+ * Texto sem acentos e em minúsculas, para as buscas por nome ignorarem acento e caixa ("sabia" acha "Sabiá").
+ * Usado pela busca da lista (App), da trilha e do mapa. Os acentos combinantes (U+0300 a U+036F) ficam
+ * escritos como escapes `\u`, para a regex não depender da codificação do arquivo.
+ */
+export const normalizeText = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+
+/** Nome em minúsculas, sem acentos e com hífens, para o nome dos arquivos baixados (cartão, colorir). */
+export const slug = (text: string) =>
+  normalizeText(text)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')

@@ -7,7 +7,8 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { fetchTaxon, type Photo, type Taxon } from '../api'
-import { displayName } from '../format'
+import { displayName, slug } from '../format'
+import { isReusable, largeUrl } from '../photos'
 import { DETAIL_LEVELS, floodFill, makeLineArt, type Detail, type LineArt } from '../lineArt'
 import { loadImage } from '../shareCard'
 
@@ -30,29 +31,12 @@ const BRUSHES = [
 /** Quantos passos o "Desfazer" guarda (cada um é uma cópia inteira da pintura, por isso o limite). */
 const MAX_UNDO = 20
 
-/** Só fotos com licença que permite obra derivada (o desenho é uma obra derivada da foto). */
-function isReusable(photo: Photo | null | undefined): photo is Photo {
-  return !!(photo?.medium_url ?? photo?.square_url) && !!photo?.license_code && !photo.license_code.includes('nd')
-}
-
-/** URL da versão grande da foto: o iNaturalist só muda o tamanho no nome do arquivo (square/medium/large). */
-const largeUrl = (photo: Photo) => (photo.medium_url ?? photo.square_url)!.replace(/\/(medium|square)\./, '/large.')
-
 /** "#rrggbb" → [r, g, b] (0–255), formato que o floodFill espera. */
 const hexToRgb = (hex: string): [number, number, number] => [
   parseInt(hex.slice(1, 3), 16),
   parseInt(hex.slice(3, 5), 16),
   parseInt(hex.slice(5, 7), 16),
 ]
-
-/** Nome em minúsculas, sem acentos e com hífens, para o nome do arquivo baixado. */
-const slug = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
 
 /** Baixa uma URL (data: ou blob:) com o nome dado, criando e clicando num link temporário. */
 function download(url: string, name: string) {

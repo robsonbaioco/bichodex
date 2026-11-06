@@ -169,13 +169,22 @@ export async function wikiSummary(title, lang = 'pt') {
 
 /**
  * Grava os dados como `window.<name> = {...}` para funcionar até abrindo o HTML direto do disco.
- * Sobrescreve <gameDir>/data.js inteiro, com um cabeçalho de "gerado em" (a data muda a cada build).
+ * Sobrescreve <gameDir>/data.js inteiro, com um cabeçalho de "gerado em". Se o conteúdo (tudo depois do
+ * cabeçalho) não mudou, não grava nada: assim a data do cabeçalho não gera diff num build sem mudanças.
  * @param {string} gameDir pasta do jogo (ex.: 'parentes'), também usada no nome do build-*.mjs do cabeçalho.
  * @param {string} varName variável global que o game.js do jogo lê (ex.: 'PARENTES_DATA').
  */
 export async function writeDataJs(gameDir, varName, data) {
   const file = join(ROOT_DIR, gameDir, 'data.js');
   const header = `// Gerado por tools/build-${gameDir}.mjs em ${new Date().toISOString().slice(0, 10)} — não editar à mão.\n`;
-  await writeFile(file, `${header}window.${varName} = ${JSON.stringify(data, null, 1)};\n`);
+  const body = `window.${varName} = ${JSON.stringify(data, null, 1)};\n`;
+  const previous = await readFile(file, 'utf8').catch(() => null);
+  // compara sem o cabeçalho e sem diferença de quebra de linha (o git no Windows pode ter gravado CRLF)
+  const previousBody = previous?.slice(previous.indexOf('\n') + 1).replace(/\r\n/g, '\n');
+  if (previousBody === body) {
+    console.log(`= ${file} (sem mudança)`);
+    return;
+  }
+  await writeFile(file, header + body);
   console.log(`✔ ${file}`);
 }

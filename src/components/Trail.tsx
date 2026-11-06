@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { SpeciesCount, Taxon } from '../api'
 import { categoryOf } from '../categories'
-import { displayName } from '../format'
+import { displayName, normalizeText } from '../format'
 import { SITE_URL } from '../shareCard'
 
 /** Trilha em andamento, como fica salva pelo App. */
@@ -17,6 +17,8 @@ export interface TrailState {
   place: string
   /** Espécies encontradas, na ordem dos toques; o nome é guardado já pronto para o resumo. */
   found: { id: number; name: string }[]
+  /** Momento em que a pessoa encerrou (ms); ausente enquanto a trilha está em andamento e nas trilhas antigas. */
+  ended?: number
 }
 
 interface Props {
@@ -27,6 +29,8 @@ interface Props {
   onToggle: (taxon: Taxon) => void
   /** Fecha a tela mantendo a trilha em andamento. */
   onMinimize: () => void
+  /** Encerra a trilha (o App grava `ended`, então o resumo sobrevive a recarregar o app). */
+  onEnd: () => void
   /** Fecha o resumo e descarta a trilha. */
   onFinish: () => void
 }
@@ -39,22 +43,16 @@ function clock(ms: number): string {
   return `${hours ? `${hours}:` : ''}${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`
 }
 
-/** Minúsculas e sem acentos, para o filtro achar "sabia" em "Sabiá". */
-const normalize = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-
 /**
  * Modo trilha: lista de toque rápido com as espécies prováveis e, no fim, um resumo para compartilhar.
  * Não fecha tocando fora nem com Esc, para não interromper a trilha sem querer: só minimizar ou encerrar.
+ * Encerrada (`trail.ended`), mostra só o resumo, até a pessoa fechar.
  */
-export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
+export function Trail({ trail, items, onToggle, onMinimize, onEnd, onFinish }: Props) {
   const [now, setNow] = useState(Date.now)
   const [query, setQuery] = useState('')
-  /** Momento em que a pessoa encerrou; não é salvo, então reabrir o app volta para a trilha em andamento. */
-  const [ended, setEnded] = useState<number | null>(null)
+  /** Momento em que a pessoa encerrou, salvo junto com a trilha pelo App; null enquanto está em andamento. */
+  const ended = trail.ended ?? null
   const [copied, setCopied] = useState(false)
 
   // Relógio: atualiza a cada segundo até a trilha ser encerrada. A duração sai sempre de `start`, então o
@@ -68,9 +66,9 @@ export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
   const foundIds = useMemo(() => new Set(trail.found.map((f) => f.id)), [trail.found])
   // filtro por nome popular ou científico; no máximo 80 itens para a lista continuar leve no celular
   const visible = useMemo(() => {
-    const term = normalize(query.trim())
+    const term = normalizeText(query.trim())
     return items
-      .filter((e) => !term || normalize(`${e.taxon.preferred_common_name ?? ''} ${e.taxon.name}`).includes(term))
+      .filter((e) => !term || normalizeText(`${e.taxon.preferred_common_name ?? ''} ${e.taxon.name}`).includes(term))
       .slice(0, 80)
   }, [items, query])
 
@@ -145,7 +143,7 @@ export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
               {visible.length === 0 && <li className="notice">Nenhuma espécie com esse nome na lista da região.</li>}
             </ul>
             <div className="trail-actions">
-              <button className="btn btn-primary btn-lg" onClick={() => setEnded(Date.now())}>
+              <button className="btn btn-primary btn-lg" onClick={onEnd}>
                 🏁 Encerrar trilha
               </button>
             </div>

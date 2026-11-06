@@ -12,7 +12,7 @@ Tudo passa por `load`/`save` de `src/storage.ts`, que gravam JSON no `localStora
 | `bichodex:zoo` | App | ids vistos em zoológico |
 | `bichodex:seenAt` | App | `{ [id]: "AAAA-MM-DDTHH:MM" }`: quando foi visto |
 | `bichodex:progress` | App via `missions.ts` | sequência, recorde e missões do dia |
-| `bichodex:trail` | App | trilha em andamento (`TrailState`) ou `null` |
+| `bichodex:trail` | App | trilha em andamento ou encerrada (`TrailState`; `ended` só existe depois de encerrar) ou `null` |
 | `bichodex:daily` | `highlights.ts` | cache do bicho do dia (data, local, raio, espécie) |
 | `bichodex:game2048` | `Game2048.tsx` | recorde `{ score, maxTile }` |
 | `bichodex:theme`, `bichodex:intensity`, `bichodex:textSize` | `themes.ts` | aparência |
@@ -23,7 +23,7 @@ Não há IndexedDB. O único Cache Storage é `bichodex-v1`, do service worker.
 
 ### Backup
 
-`exportBackup` gera um JSON `{ app: 'bichodex', version: 1, exportedAt, data }` com **todas as chaves `bichodex:`**; `Backup.tsx` baixa como `bichodex-AAAA-MM-DD.json`. `parseBackup` valida o arquivo e `restoreBackup` apaga as chaves atuais e grava as do arquivo (o app recarrega depois).
+`exportBackup` gera um JSON `{ app: 'bichodex', version: 1, exportedAt, data }` com **todas as chaves `bichodex:`**; `Backup.tsx` baixa como `bichodex-AAAA-MM-DD.json`. `parseBackup` valida o arquivo e `restoreBackup` apaga as chaves atuais e grava as do arquivo (o app recarrega depois). Se a gravação falhar no meio (cota cheia), ele desfaz e devolve os valores antigos, e o Backup avisa que os dados foram mantidos.
 
 - As estatísticas dos jogos do Biodiversigames **não entram** no backup (não têm o prefixo).
 - Se a gravação falhar no meio da restauração, os dados ficam parciais: o erro aparece, mas não há desfazer.
@@ -47,11 +47,11 @@ Todas públicas, sem chave. Todas as chamadas do app estão em `src/api.ts`.
 
 Os parâmetros comuns das buscas por área (`areaParams`) são: círculo `lat`/`lng`/`radius`, só registros verificáveis, `locale=pt-BR` e, com o filtro "em risco", `threatened=true`.
 
-**Limite de uso**: o iNaturalist limita requisições por minuto. A busca por nome dispara várias páginas em sequência; evite criar recursos que façam muitas chamadas em laço.
+**Limite de uso**: o iNaturalist limita requisições por minuto. A busca por nome dispara várias páginas em sequência; evite criar recursos que façam muitas chamadas em laço. As fichas (`fetchTaxon`) ficam guardadas na memória da página depois da primeira busca: a ficha, o cartão e o colorir da mesma espécie fazem uma requisição só.
 
 ### Fotos em canvas (CORS)
 
-O cartão de conquista e a página de colorir desenham fotos em `<canvas>`. Para o canvas não ficar "contaminado" (o que faz `toBlob`/`getImageData` falharem), as fotos são baixadas por `loadImage` (`shareCard.ts`) com `fetch` em `mode: 'cors'` e `cache: 'reload'`. O `reload` é necessário porque as `<img>` da lista já deixaram no cache do navegador respostas sem cabeçalho CORS. Só são usadas fotos com licença Creative Commons sem "nd" (`isReusable`).
+O cartão de conquista e a página de colorir desenham fotos em `<canvas>`. Para o canvas não ficar "contaminado" (o que faz `toBlob`/`getImageData` falharem), as fotos são baixadas por `loadImage` (`shareCard.ts`) com `fetch` em `mode: 'cors'` e `cache: 'reload'`. O `reload` é necessário porque as `<img>` da lista já deixaram no cache do navegador respostas sem cabeçalho CORS. Só são usadas fotos com licença Creative Commons sem "nd" (`isReusable`, em `src/photos.ts`, junto com `largeUrl`).
 
 ## Service worker (`public/sw.js`)
 
@@ -59,9 +59,8 @@ Registrado só em produção.
 
 - `install` ativa na hora (`skipWaiting`); `activate` apaga caches com outro nome e assume as abas abertas (`clients.claim`).
 - Só intercepta **GET da mesma origem**. APIs e fotos passam direto, sem cache.
-- Estratégia "rede primeiro": busca na rede (navegações com `cache: 'no-cache'`, porque o GitHub Pages manda guardar por 10 min), guarda a cópia e, sem rede, serve a cópia. Navegação sem cópia recebe a página inicial (as rotas são por `#`).
+- Estratégia "rede primeiro": busca na rede (navegações com `cache: 'no-cache'`, porque o GitHub Pages manda guardar por 10 min), guarda a cópia (só de respostas de sucesso) e, sem rede, serve a cópia. Navegação sem cópia recebe a página inicial (as rotas são por `#`).
 - Para jogar fora o cache antigo de todo mundo, troque o nome `bichodex-v1`.
-- Ele guarda qualquer resposta, inclusive 404/500.
 
 ## Aviso de atualização (`src/updates.ts` + `UpdatePrompt.tsx`)
 

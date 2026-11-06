@@ -39,7 +39,7 @@ Mostra uma espécie da região ainda não avistada por vez; a fila é fixada qua
 
 ## Trilha (`Trail.tsx`)
 
-O App cria e salva um `TrailState` (`start`, `place`, `found`). Tocar numa espécie a inclui ou tira da trilha e marca como avistada. O filtro ignora acentos e mostra até 80 itens. O relógio é calculado a partir de `start`, então continua contando com o app fechado. "Encerrar" mostra o resumo (compartilhar ou copiar); fechar o resumo descarta a trilha.
+O App cria e salva um `TrailState` (`start`, `place`, `found`). Tocar numa espécie a inclui ou tira da trilha e marca como avistada. O filtro ignora acentos e mostra até 80 itens. O relógio é calculado a partir de `start`, então continua contando com o app fechado. "Encerrar" grava o momento (`ended`) e mostra o resumo (compartilhar ou copiar); o resumo sobrevive a recarregar o app (o botão flutuante passa a dizer "Trilha encerrada"), e fechar o resumo descarta a trilha.
 
 ## Mapa (`MapView.tsx`)
 

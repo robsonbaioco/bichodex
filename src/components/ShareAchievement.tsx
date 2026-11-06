@@ -6,7 +6,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchTaxon, type Photo, type Taxon } from '../api'
 import { categoryOf } from '../categories'
-import { displayName, formatSeenAt, type SeenWhere } from '../format'
+import { displayName, formatSeenAt, slug, type SeenWhere } from '../format'
+import { isReusable, largeUrl } from '../photos'
 import { CARD_SIZES, SITE_URL, drawCard, loadImage, type CardFormat } from '../shareCard'
 import { currentTheme } from '../themes'
 import { SeenAtField } from './SpeciesDetail'
@@ -14,28 +15,11 @@ import { SeenAtField } from './SpeciesDetail'
 /** De onde vem a foto do cartão: catálogo do iNaturalist ou arquivo enviado pela pessoa. */
 type Source = 'catalog' | 'own'
 
-/** Só reutilizamos fotos do catálogo com licença Creative Commons que permita obras derivadas. */
-function isReusable(photo: Photo | null | undefined): photo is Photo {
-  return !!(photo?.medium_url ?? photo?.square_url) && !!photo?.license_code && !photo.license_code.includes('nd')
-}
-
-/** URL da versão grande da foto: o iNaturalist só muda o tamanho no nome do arquivo (square/medium/large). */
-const largeUrl = (photo: Photo) => (photo.medium_url ?? photo.square_url)!.replace(/\/(medium|square)\./, '/large.')
-
 /** Sorteia uma foto da lista, evitando repetir `except` quando há outra opção; null se a lista estiver vazia. */
 const pickRandom = (photos: Photo[], except?: Photo | null): Photo | null => {
   const pool = photos.length > 1 ? photos.filter((photo) => photo !== except) : photos
   return pool[Math.floor(Math.random() * pool.length)] ?? null
 }
-
-/** Nome em minúsculas, sem acentos e com hífens, para o nome do arquivo baixado. */
-const slug = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
 
 interface Props {
   taxon: Taxon

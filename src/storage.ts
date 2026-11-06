@@ -60,15 +60,31 @@ export function parseBackup(text: string): BackupData | null {
 
 /**
  * Substitui os dados deste navegador pelos da cópia: apaga todas as chaves `bichodex:` e grava as da cópia.
- * Pode lançar erro (cota cheia, por exemplo) no meio da gravação; quem chama trata.
+ * Se a gravação falhar no meio (cota cheia, por exemplo), desfaz: apaga o que já foi gravado, devolve os
+ * valores antigos, exatamente como estavam, e relança o erro para quem chama avisar a pessoa.
  */
 export function restoreBackup(backup: BackupData): void {
-  // junta as chaves antes de apagar: remover durante o laço mudaria os índices de localStorage.key(i)
-  const current: string[] = []
+  // guarda chaves e valores antes de apagar: remover durante o laço mudaria os índices de localStorage.key(i),
+  // e os valores brutos servem para desfazer se algo der errado
+  const previous: [string, string][] = []
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i)
-    if (key?.startsWith(PREFIX)) current.push(key)
+    if (key?.startsWith(PREFIX)) previous.push([key, localStorage.getItem(key) ?? 'null'])
   }
-  current.forEach((key) => localStorage.removeItem(key))
-  for (const [key, value] of Object.entries(backup.data)) localStorage.setItem(PREFIX + key, JSON.stringify(value))
+  // os textos a gravar são montados antes de apagar qualquer coisa (um valor que não vira JSON falha aqui)
+  const next = Object.entries(backup.data).map(([key, value]) => [PREFIX + key, JSON.stringify(value)] as const)
+  try {
+    previous.forEach(([key]) => localStorage.removeItem(key))
+    for (const [key, raw] of next) localStorage.setItem(key, raw)
+  } catch (error) {
+    next.forEach(([key]) => localStorage.removeItem(key))
+    for (const [key, raw] of previous) {
+      try {
+        localStorage.setItem(key, raw)
+      } catch {
+        // sem espaço nem para o valor antigo: não há o que fazer além de seguir com os outros
+      }
+    }
+    throw error
+  }
 }

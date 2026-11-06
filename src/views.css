@@ -833,7 +833,7 @@
   margin-bottom: 0.6rem;
   background: var(--surface);
   border: var(--bw) solid var(--line);
-  border-radius: var(--rad);
+  border-radius: var(--radius);
   text-align: left;
   cursor: pointer;
   color: var(--ink);
@@ -903,7 +903,7 @@
 .g2048-score {
   background: var(--surface);
   border: var(--bw) solid var(--line);
-  border-radius: var(--rad);
+  border-radius: var(--radius);
   padding: 0.25rem 0.6rem;
   display: grid;
   line-height: 1.15;
@@ -939,7 +939,7 @@
   aspect-ratio: 1;
   background: var(--surface);
   border: var(--bw) solid var(--line);
-  border-radius: var(--rad);
+  border-radius: var(--radius);
   padding: var(--g2048-gap);
   touch-action: none;
   user-select: none;
@@ -951,7 +951,7 @@
 
 .g2048-cell {
   background: color-mix(in srgb, var(--ink) 7%, transparent);
-  border-radius: calc(var(--rad) / 2);
+  border-radius: calc(var(--radius) / 2);
 }
 
 .g2048-tile {
@@ -959,7 +959,7 @@
   width: var(--g2048-cell);
   height: var(--g2048-cell);
   margin: var(--g2048-gap) 0 0 var(--g2048-gap);
-  border-radius: calc(var(--rad) / 2);
+  border-radius: calc(var(--radius) / 2);
   display: grid;
   place-items: center;
   font-weight: 800;
@@ -1006,7 +1006,7 @@
   position: absolute;
   inset: 0;
   margin: var(--g2048-gap);
-  border-radius: calc(var(--rad) / 2);
+  border-radius: calc(var(--radius) / 2);
   background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: blur(2px);
   display: grid;

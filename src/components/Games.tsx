@@ -68,7 +68,7 @@ const GAMES: GameInfo[] = [
 
 /**
  * Moldura do iframe: ocupa a altura da tela menos a barra do topo e as abas (os 11rem), usando
- * os tokens do tema. Atenção: `--rad` não é definida em nenhum CSS, então o canto sai reto.
+ * os tokens do tema (`--bw`, `--line`, `--radius`, `--surface`).
  */
 const FRAME_STYLE: CSSProperties = {
   display: 'block',
@@ -77,7 +77,7 @@ const FRAME_STYLE: CSSProperties = {
   minHeight: '34rem',
   marginTop: '0.5rem',
   border: 'var(--bw) solid var(--line)',
-  borderRadius: 'var(--rad)',
+  borderRadius: 'var(--radius)',
   background: 'var(--surface)',
 }
 

@@ -1,7 +1,8 @@
 // Camada de rede do app: todas as chamadas às APIs externas passam por aqui.
 // iNaturalist (espécies, contagens, registros, fichas), Open-Meteo (busca de cidades) e BigDataCloud
 // (nome do lugar a partir da posição). Usado pelo App, pelo LocationPicker e por vários componentes
-// (Highlights, MapView, SpeciesDetail, Dex, jogos). Não guarda nada: cache, se houver, fica com quem chama.
+// (Highlights, MapView, SpeciesDetail, Dex, jogos). Só as fichas (fetchTaxon) ficam guardadas na memória enquanto
+// a página estiver aberta; o resto não tem cache aqui (se houver, fica com quem chama).
 import type { Category } from './categories'
 
 /** Base da API pública do iNaturalist (sem chave; tem limite de requisições por minuto). */
@@ -117,10 +118,19 @@ export async function fetchCategoryCounts(
   return Object.fromEntries(data.results.map((r) => [r.taxon.name, r.count]))
 }
 
-/** Ficha completa de uma espécie, com nomes em pt-BR; lança erro se o id não existir. */
+/** Fichas já baixadas nesta sessão, por id: a ficha, o cartão e o colorir da mesma espécie pedem a mesma. */
+const taxonCache = new Map<number, TaxonDetail>()
+
+/**
+ * Ficha completa de uma espécie, com nomes em pt-BR; lança erro se o id não existir. Uma ficha baixada com
+ * sucesso fica em `taxonCache` até a página recarregar, e as próximas chamadas não vão à rede.
+ */
 export async function fetchTaxon(id: number, signal?: AbortSignal): Promise<TaxonDetail> {
+  const cached = taxonCache.get(id)
+  if (cached) return cached
   const data = await getJson<{ results: TaxonDetail[] }>(`${INAT}/taxa/${id}?locale=pt-BR`, signal)
   if (!data.results[0]) throw new Error('Espécie não encontrada')
+  taxonCache.set(id, data.results[0])
   return data.results[0]
 }
 

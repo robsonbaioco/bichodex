@@ -9,7 +9,7 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { fetchCountsForTaxa, fetchRecentSightings, type Place, type Sighting, type Taxon } from '../api'
 import { categoryOf, type Category } from '../categories'
-import { displayName, formatNumber, frequencyLabel, type Rarity } from '../format'
+import { displayName, formatNumber, frequencyLabel, normalizeText, type Rarity } from '../format'
 
 interface Props {
   place: Place
@@ -61,13 +61,6 @@ type SortBy = 'near' | 'records'
 /** Linhas da lista mostradas de cada vez (o "Mostrar mais" soma outra página). */
 const LIST_PAGE = 30
 
-/** Texto sem acentos e em minúsculas, para a busca por nome ignorar acento e caixa. */
-const normalize = (text: string) =>
-  text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-
 /** Mapa da área de busca com os registros mais recentes; tocar em um ponto leva à ficha da espécie. */
 export default function MapView({
   place,
@@ -106,10 +99,14 @@ export default function MapView({
   /** Quantas linhas da lista aparecem; o resto fica atrás do botão "Mostrar mais". */
   const [shown, setShown] = useState(LIST_PAGE)
 
+  // Os efeitos abaixo dependem das coordenadas, não da identidade do objeto `place`: um objeto novo com as
+  // mesmas coordenadas (o App relendo o local, por exemplo) não recria o mapa nem refaz as buscas.
+  const { lat, lng } = place
+
   // O mapa e o círculo da área: refeitos quando o local ou o raio mudam.
   useEffect(() => {
     if (!node.current) return
-    const center: L.LatLngTuple = [place.lat, place.lng]
+    const center: L.LatLngTuple = [lat, lng]
     // o círculo só sabe os próprios limites depois que o mapa tem uma vista definida
     const instance = L.map(node.current, { zoomControl: true }).setView(center, 11)
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -131,7 +128,7 @@ export default function MapView({
       map.current = null
       markers.current = null
     }
-  }, [place, radius])
+  }, [lat, lng, radius])
 
   // Categoria e risco de extinção são filtrados pelo servidor.
   useEffect(() => {
@@ -145,7 +142,7 @@ export default function MapView({
       .then(setSightings)
       .catch((error) => error.name !== 'AbortError' && setFailed(true))
     return () => controller.abort()
-  }, [place, radius, category, threatened])
+  }, [lat, lng, radius, category, threatened])
 
   // A raridade depende do total de registros de cada espécie na região, que não vem junto com os
   // pontos: busca as contagens uma vez por lista de pontos, só quando o filtro de raridade é ligado.
@@ -157,14 +154,14 @@ export default function MapView({
       .then(setCounts)
       .catch((error) => error.name !== 'AbortError' && setFailed(true))
     return () => controller.abort()
-  }, [needCounts, sightings, place, radius])
+  }, [needCounts, sightings, lat, lng, radius])
 
   // Nome e raridade são filtrados aqui, sobre os registros já baixados.
   const visible = useMemo(() => {
     if (!sightings || (rarity && !counts)) return null
-    const term = normalize(query.trim())
+    const term = normalizeText(query.trim())
     return sightings.filter((s) => {
-      if (term && !normalize(`${s.taxon.preferred_common_name ?? ''} ${s.taxon.name}`).includes(term)) return false
+      if (term && !normalizeText(`${s.taxon.preferred_common_name ?? ''} ${s.taxon.name}`).includes(term)) return false
       if (!rarity) return true
       const count = counts!.get(s.taxon.id)
       return count != null && count >= rarity.min && count <= rarity.max
@@ -187,7 +184,7 @@ export default function MapView({
     return [...byId.values()].sort((a, b) =>
       sortBy === 'near' ? a.nearestKm - b.nearestKm : b.records - a.records || a.nearestKm - b.nearestKm,
     )
-  }, [visible, place, sortBy])
+  }, [visible, lat, lng, sortBy])
 
   // a espécie escolhida pode ter saído da lista ao mudar os filtros
   const focus = species.find((item) => item.taxon.id === focusId) ?? null
@@ -254,8 +251,8 @@ export default function MapView({
       map.current.fitBounds(area.current.getBounds())
       zoomedIn.current = false
     }
-    // place e radius entram porque o mapa (e a camada de pontos) é recriado quando mudam
-  }, [onMap, focus, counts, place, radius])
+    // as coordenadas e o raio entram porque o mapa (e a camada de pontos) é recriado quando mudam
+  }, [onMap, focus, counts, lat, lng, radius])
 
   /** Toque numa linha da lista: foca o mapa nessa espécie (ou desfaz, se já era ela) e rola até o mapa. */
   function pick(id: number) {

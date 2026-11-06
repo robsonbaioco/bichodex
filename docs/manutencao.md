@@ -69,43 +69,33 @@ Edite só `biodiversigames/shared/` (`common.js`, `base.css`). As cópias em cad
 
 ## Pontos frágeis conhecidos
 
-Coisas que funcionam hoje, mas quebram fácil ou têm comportamento que surpreende.
+Coisas que funcionam hoje, mas quebram fácil ou têm comportamento que surpreende. O que está aqui não tem correção simples: depende de serviço externo, de decisão de produto ou de implementar um recurso novo (o motivo vai entre parênteses quando não é óbvio).
 
 **Rede e imagens**
 - Fotos em canvas dependem dos cabeçalhos CORS do CDN do iNaturalist (ver [Dados e APIs](dados-e-apis.md#fotos-em-canvas-cors)). Se mudarem, o cartão de conquista e o colorir quebram.
 - `largeUrl` (troca `/medium.` ou `/square.` por `/large.` na URL da foto) depende do padrão de nomes do iNaturalist.
-- A ficha, o cartão e o colorir chamam `fetchTaxon` cada um, sem cache compartilhado.
 - O iNaturalist tem limite de requisições; a busca por nome dispara várias páginas seguidas.
 
 **Código duplicado** (mudou num, mude no outro)
-- `isReusable`, `largeUrl` e `slug` existem em `ShareAchievement.tsx` e em `Coloring.tsx`; `normalize` (tirar acentos) aparece em `App.tsx`, `Trail.tsx` e `MapView.tsx`.
 - A lista de jogos está em três lugares (ver "Jogo novo").
 
-**Texto e codificação**
-- `normalize` em `App.tsx` tem os acentos combinantes (U+0300–U+036F) escritos literalmente dentro da regex. Um editor que mude a codificação do arquivo quebra a busca sem acentos.
-
 **Estado e dias**
-- Sequência e missões só viram o dia ao abrir/recarregar o app.
-- O rodízio da categoria do dia recomeça a cada ano.
-- Medalhas de avistamento somem se a pessoa desmarcar espécies; as de sequência ficam.
-- A trilha encerrada (`ended`) não é salva: se o app recarregar, ela volta a ficar em andamento.
-- Depois da primeira busca por nome, `bulk` não volta a falso: a lista segue em páginas de 500 até recarregar.
-- O bicho do dia guarda um único local no cache; trocar de local e voltar refaz a busca.
+- Sequência e missões só viram o dia ao abrir/recarregar o app (virar sozinho à meia-noite seria recurso novo).
+- O rodízio da categoria do dia recomeça a cada ano (mudar a regra muda a categoria de todo mundo: decisão de produto).
+- Medalhas de avistamento somem se a pessoa desmarcar espécies; as de sequência ficam (decisão de produto: guardar medalhas exigiria um dado novo salvo).
+- Depois da primeira busca por nome, `bulk` não volta a falso: a lista segue em páginas de 500 até recarregar. É de propósito: voltar para páginas pequenas mudaria `perPage` e recarregaria a lista do começo.
+- O bicho do dia guarda um único local no cache; trocar de local e voltar refaz a busca (só custa uma requisição).
 
 **Bicho 2048**
-- "Continuar no infinito" muda só `game.mode`; o estado `mode` continua `'normal'`, então a etiqueta mostra "🏆 Normal" e "Novo jogo" recomeça no normal.
-- A partida não é salva.
+- "Continuar no infinito" muda só `game.mode` (a etiqueta acompanha); "Novo jogo" recomeça no modo escolhido no início, que continua em `mode`.
+- A partida não é salva (recurso novo).
 
 **Mapa**
-- Mostra no máximo os 200 registros mais recentes. O efeito do mapa depende da identidade do objeto `place`: um objeto novo com as mesmas coordenadas recria o mapa.
-
-**CSS**
-- `--rad` é usada em `Games.tsx` (`FRAME_STYLE`) e em várias regras de `views.css`, mas **não é definida** em nenhum CSS; esses cantos saem retos. O token existente é `--radius`.
+- Mostra no máximo os 200 registros mais recentes.
 
 **Infra**
-- O `sw.js` guarda qualquer resposta (inclusive erros). Para limpar o cache de todos, troque o nome `bichodex-v1`.
+- Para limpar o cache do `sw.js` de todos, troque o nome `bichodex-v1`.
 - `updates.ts` depende do padrão `assets/index-*.js` no HTML.
-- `restoreBackup` apaga tudo antes de gravar; falha no meio deixa dados parciais.
 - O cartão de instalação não aparece no Safari/iOS (lá não existe `beforeinstallprompt`).
-- No build dos jogos, um nome inexistente (`inatTaxon`, `gbifMatch`, `ottIds`) interrompe o build inteiro, e o cabeçalho do `data.js` muda de data a cada build (gera diff mesmo sem mudança de conteúdo).
-- No build dos jogos, só a busca em observações filtra licença de foto; a foto padrão e as do táxon aceitam qualquer CC, inclusive NC (ver licenças no README do Biodiversigames).
+- No build dos jogos, um nome inexistente (`inatTaxon`, `gbifMatch`, `ottIds`) interrompe o build inteiro. (O `data.js` só é regravado quando o conteúdo muda, então a data do cabeçalho não gera diff sozinha.)
+- No build dos jogos, só a busca em observações filtra licença de foto; a foto padrão e as do táxon aceitam qualquer CC, inclusive NC (ver licenças no README do Biodiversigames). Continua assim porque restringir é decisão de licenciamento (e muda as fotos dos puzzles já publicados).
