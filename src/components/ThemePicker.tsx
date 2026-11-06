@@ -1,3 +1,7 @@
+// Janela "Tema e letra": tamanho da letra, intensidade dos efeitos (suave/forte) e a lista de temas.
+// Só mostra e avisa: o App.tsx guarda as escolhas no estado e chama applyTheme/applyTextSize
+// (themes.ts), que mudam o <html> e gravam no localStorage. A lista vem de THEMES.
+
 import type { CSSProperties } from 'react'
 import { TEXT_SIZES, THEMES, type Intensity, type TextSize, type ThemeId } from '../themes'
 
@@ -11,6 +15,10 @@ interface Props {
   onClose: () => void
 }
 
+/**
+ * Folha de escolha de tema; tocar fora dela fecha. A amostra de cada tema usa as cores de `swatch`
+ * (variáveis --s1/--s2/--s3), e não as do tema em uso, para dar para comparar.
+ */
 export function ThemePicker({ current, intensity, onPick, onIntensity, textSize, onTextSize, onClose }: Props) {
   return (
     <div className="overlay" onClick={onClose}>

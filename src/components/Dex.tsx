@@ -1,3 +1,8 @@
+// Aba "Minha dex": o álbum das espécies avistadas, com barras de progresso por categoria e
+// sugestões de espécies da região que ainda faltam. Usada pelo App.tsx, que guarda a lista de
+// avistadas (só ids, no localStorage) e as contagens da região. Os dados de cada espécie
+// avistada (nome, foto) vêm do iNaturalist por fetchTaxaByIds. No fim, mostra o Backup.
+
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { fetchTaxaByIds, type SpeciesCount, type Taxon } from '../api'
 import { CATEGORIES, categoryOf } from '../categories'
@@ -6,20 +11,25 @@ import { Backup } from './Backup'
 import { SpeciesCard } from './SpeciesCard'
 
 interface Props {
+  /** Ids das espécies avistadas, na ordem em que foram marcadas (a última é a mais recente). */
   seen: number[]
   /** Espécies por grupo icônico na região, para a barra de progresso de cada categoria. */
   counts: Record<string, number>
   /** Espécies da região já carregadas, de onde saem as sugestões do que procurar. */
   regional: SpeciesCount[]
+  /** Repassado ao SpeciesCard, que abre a ficha da espécie. */
   onOpen: () => void
   onToggleSeen: (taxon: Taxon) => void
+  /** Abre o baralho de descobertas (botão do estado vazio). */
   onStartDeck: () => void
 }
 
 /** Álbum das espécies avistadas, com o progresso por categoria e sugestões do que ainda falta. */
 export function Dex({ seen, counts, regional, onOpen, onToggleSeen, onStartDeck }: Props) {
+  /** Dados das espécies já baixadas, por id. */
   const [taxa, setTaxa] = useState<Map<number, Taxon>>(new Map())
   const [failed, setFailed] = useState(false)
+  /** Ids já pedidos ao servidor (com ou sem resposta), para não pedir de novo. */
   const requested = useRef(new Set<number>())
 
   // só busca o que ainda não foi pedido, para marcar ou desmarcar não recarregar o álbum inteiro
@@ -31,17 +41,19 @@ export function Dex({ seen, counts, regional, onOpen, onToggleSeen, onStartDeck 
     fetchTaxaByIds(missing)
       .then((found) => setTaxa((current) => new Map([...current, ...found.map((t) => [t.id, t] as const)])))
       .catch(() => {
+        // libera os ids para que a próxima mudança em `seen` tente de novo
         missing.forEach((id) => requested.current.delete(id))
         setFailed(true)
       })
   }, [seen])
 
-  // mais recentes primeiro
+  // mais recentes primeiro; as que ainda não chegaram do servidor ficam de fora (o flatMap some com elas)
   const album = useMemo(
     () => [...seen].reverse().flatMap((id) => taxa.get(id) ?? []),
     [seen, taxa],
   )
 
+  // quantas avistadas há em cada categoria, para as barras de progresso
   const byCategory = useMemo(() => {
     const totals = new Map<string, number>()
     for (const taxon of album) {
@@ -54,10 +66,12 @@ export function Dex({ seen, counts, regional, onOpen, onToggleSeen, onStartDeck 
   const seenSet = useMemo(() => new Set(seen), [seen])
   // registros na região, para as avistadas que também aparecem na lista regional
   const regionalCount = useMemo(() => new Map(regional.map((entry) => [entry.taxon.id, entry.count])), [regional])
+  // sugestões: as 12 primeiras da lista regional (que vem das mais registradas) ainda não avistadas e com foto
   const toFind = useMemo(
     () => regional.filter((entry) => !seenSet.has(entry.taxon.id) && entry.taxon.default_photo).slice(0, 12),
     [regional, seenSet],
   )
+  // ainda há espécies pedidas sem resposta: mostra cartões "esqueleto" no lugar delas
   const loading = album.length < seen.length && !failed && taxa.size < requested.current.size
 
   return (
@@ -74,6 +88,7 @@ export function Dex({ seen, counts, regional, onOpen, onToggleSeen, onStartDeck 
       <ul className="dex-progress">
         {CATEGORIES.filter((c) => c.iconic && (counts[c.iconic] || byCategory.get(c.id))).map((c) => {
           const have = byCategory.get(c.id) ?? 0
+          // as avistadas podem ser de fora da região atual, então o total nunca fica abaixo delas
           const total = Math.max(counts[c.iconic!] ?? 0, have)
           return (
             <li key={c.id} style={{ '--c': c.color } as CSSProperties}>

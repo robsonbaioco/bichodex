@@ -1,8 +1,25 @@
 // Datas comemorativas que não são sobre animais, cada uma associada a um animal (ver revisao/datas-associacoes.pdf).
 // Gerado a partir das sugestões aprovadas; os táxons foram resolvidos no iNaturalist pelo nome científico.
+//
+// Papel: só conteúdo. specialDaysOn() em src/highlights.ts junta esta lista depois de SPECIAL_DAYS, e o
+// destaque da home mostra "<group>. <reason>" no lugar do resumo do táxon que as datas de animais exibem.
+// A lista foi gerada uma vez; hoje é editada à mão (não há script que a regenere).
+//
+// Formato de cada entrada (tipo SpecialDay, ver specialDays.ts):
+// - name: nome da data; group: nome do animal como aparece na frase; emoji: um dos já usados
+//   (🐾 mamífero, 🐦 ave, 🦎 réptil, 🐸 anfíbio, 🐟 peixe, 🐞 inseto, 🕷️ aracnídeo, 🐚 molusco,
+//   🌊 outros bichos aquáticos/de solo).
+// - taxonId: ID do táxon no iNaturalist. Confira em inaturalist.org/taxa/<id> antes de salvar: um ID
+//   errado abre a ficha de outro ser vivo.
+// - reason: obrigatório na prática aqui, é a frase curta que explica a associação.
+// - month + day para data fixa, ou easter: true para a Páscoa (regras móveis também funcionam,
+//   como em specialDays.ts).
+// - Mantenha a ordem do calendário; datas do mesmo dia aparecem na ordem da lista.
+// - O mesmo animal pode servir a mais de uma data (ex.: Sabiá-laranjeira em março e outubro).
 
 import type { SpecialDay } from './specialDays'
 
+/** Datas comemorativas que não são sobre animais, cada uma com o animal associado e o motivo. */
 export const ASSOCIATED_DAYS: SpecialDay[] = [
   { name: 'Dia Mundial da Paz / Confraternização Universal', group: 'Pomba', emoji: '🐦', taxonId: 3017, reason: 'A pomba branca é o símbolo universal da paz.', month: 1, day: 1 },
   { name: 'Dia Mundial do Braile', group: 'Toupeira-nariz-de-estrela', emoji: '🐾', taxonId: 47056, reason: '"Enxerga" pelo tato: o focinho tem o órgão tátil mais sensível entre os mamíferos.', month: 1, day: 4 },

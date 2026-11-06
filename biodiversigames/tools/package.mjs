@@ -4,19 +4,24 @@
 // Uso: node tools/package.mjs         → sincroniza e empacota
 //      node tools/package.mjs --sync  → só sincroniza (para testar localmente)
 // A cópia para o Bichodex (public/jogos/) é feita por scripts/copiar-jogos.mjs, antes do dev e do build.
+// Não chama rede (de lib.mjs só usa ROOT_DIR). Escreve em <jogo>/ (arquivos de shared/) e em dist/ (fora do git).
+// Hoje o Biodiversigames não vai para o itch.io; este script fica para quando for.
 import { copyFile, cp, mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { ROOT_DIR } from './lib.mjs';
 
+/** Pastas dos jogos (mesma lista de scripts/copiar-jogos.mjs, no Bichodex). */
 const GAMES = ['parentes', 'conexoes-selvagens', 'onde-vive'];
 const SHARED = join(ROOT_DIR, 'shared');
 const DIST = join(ROOT_DIR, 'dist');
 const args = process.argv.slice(2);
 const syncOnly = args.includes('--sync');
 
+/** true se o caminho existe (arquivo ou pasta). */
 const exists = (p) => stat(p).then(() => true, () => false);
 
+/** Compacta o conteúdo de `dir` (não a pasta em si) no arquivo `zip`, para o index.html ficar na raiz. */
 function zipDir(dir, zip) {
   // Compress-Archive do PowerShell (Windows) ou zip (Linux/macOS).
   if (process.platform === 'win32') {
@@ -26,6 +31,7 @@ function zipDir(dir, zip) {
   }
 }
 
+/** Mostra no console o caminho do zip (relativo a biodiversigames/) e o tamanho em KB. */
 async function report(zip) {
   const { size } = await stat(zip);
   console.log(`✔ ${zip.slice(ROOT_DIR.length + 1)} (${(size / 1024).toFixed(0)} KB)`);
@@ -46,12 +52,14 @@ if (syncOnly) process.exit(0);
 await mkdir(DIST, { recursive: true });
 for (const game of GAMES) {
   const zip = join(DIST, `${game}.zip`);
+  // Apaga o zip antigo: o Compress-Archive se recusa a sobrescrever, e o zip acrescentaria ao existente.
   await rm(zip, { force: true });
   zipDir(join(ROOT_DIR, game), zip);
   await report(zip);
 }
 
 // 3. Zip do catálogo: index.html + shared/ + jogos.
+// Monta tudo numa pasta temporária (dist/_catalogo), compacta e apaga a pasta.
 const stage = join(DIST, '_catalogo');
 await rm(stage, { recursive: true, force: true });
 await mkdir(stage, { recursive: true });

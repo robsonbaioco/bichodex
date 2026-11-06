@@ -1,3 +1,8 @@
+// Destaques do topo da aba Explorar: lembretes de datas do dia, um cartão por data comemorativa
+// com animal e o cartão do "bicho do dia". Usado pelo App.tsx. A regra de cada destaque fica em
+// highlights.ts; aqui só se busca o que falta no iNaturalist (detalhes do táxon para foto e resumo,
+// e quantas espécies do grupo há na região) e se desenha. Não grava nada além do cache do bicho do dia.
+
 import { useEffect, useMemo, useState } from 'react'
 import { countSpeciesInArea, fetchTaxon, type Place, type Taxon, type TaxonDetail } from '../api'
 import { displayName, excerpt, formatNumber, htmlToText } from '../format'
@@ -9,14 +14,18 @@ interface Props {
   radius: number
   seen: Set<number>
   onOpen: (taxonId: number) => void
+  /** "Avistei" no bicho do dia. */
   onMarkSeen: (taxon: Taxon) => void
+  /** Compartilhar o bicho do dia, quando ele já foi avistado. */
   onShare: (taxon: Taxon) => void
   /** Filtra a lista pelas espécies do grupo homenageado que ocorrem na região. */
   onExploreGroup: (day: SpecialDay) => void
 }
 
+/** Foto do táxon, de preferência a média. */
 const photoOf = (taxon: Taxon) => taxon.default_photo?.medium_url ?? taxon.default_photo?.square_url
 
+/** Trecho curto do resumo da Wikipédia (sem HTML), ou vazio se não houver. */
 function blurbOf(detail: TaxonDetail | null): string {
   return detail?.wikipedia_summary ? excerpt(htmlToText(detail.wikipedia_summary)) : ''
 }
@@ -42,11 +51,16 @@ function useTaxonDetail(id: number | undefined): TaxonDetail | null {
   return detail
 }
 
+/**
+ * Cartão de uma data comemorativa: foto do táxon (ou o emoji), o motivo ou o resumo da Wikipédia,
+ * e o botão que filtra o Explorar pelo grupo, que só aparece se o grupo tiver registros na região.
+ */
 function SpecialDayCard({ day, place, radius, onOpen, onExploreGroup }: { day: SpecialDay } & Pick<Props, 'place' | 'radius' | 'onOpen' | 'onExploreGroup'>) {
   const [groupCount, setGroupCount] = useState<number | null>(null)
   const taxon = useTaxonDetail(day.taxonId)
   const photo = taxon && photoOf(taxon)
 
+  // quantas espécies do grupo homenageado têm registro na área (0 = sugere o zoológico)
   useEffect(() => {
     const controller = new AbortController()
     setGroupCount(null)
@@ -93,12 +107,15 @@ function SpecialDayCard({ day, place, radius, onOpen, onExploreGroup }: { day: S
   )
 }
 
+/** Faixa de destaques do dia; não desenha nada se não houver bicho do dia, data especial nem lembrete. */
 export function Highlights({ place, radius, seen, onOpen, onMarkSeen, onShare, onExploreGroup }: Props) {
+  // a data é fixada ao montar: ?data= só muda as datas comemorativas; o bicho do dia sempre usa o dia real
   const [today] = useState(() => previewDate() ?? new Date())
   const specialDays = useMemo(() => specialDaysOn(today), [today])
   const reminders = useMemo(() => remindersOn(today), [today])
   const [daily, setDaily] = useState<Taxon | null>(null)
 
+  // sorteia (ou lê do cache) o bicho do dia sempre que o local ou o raio mudam
   useEffect(() => {
     const controller = new AbortController()
     setDaily(null)

@@ -1,13 +1,21 @@
+// Modo trilha: durante uma caminhada, a pessoa toca nas espécies que vai encontrando (lista de toque rápido com
+// as mais prováveis da região) e, ao encerrar, ganha um resumo em texto para compartilhar. Aberto pelo App.tsx,
+// que guarda a trilha em andamento no localStorage (chave "trail") para ela sobreviver a minimizar ou fechar o
+// app; tocar numa espécie também a marca como avistada (toggleTrail no App). Não chama API.
+
 import { useEffect, useMemo, useState } from 'react'
 import type { SpeciesCount, Taxon } from '../api'
 import { categoryOf } from '../categories'
 import { displayName } from '../format'
 import { SITE_URL } from '../shareCard'
 
+/** Trilha em andamento, como fica salva pelo App. */
 export interface TrailState {
   /** Início da trilha (milissegundos desde a época). */
   start: number
+  /** Nome do local no momento em que a trilha começou. */
   place: string
+  /** Espécies encontradas, na ordem dos toques; o nome é guardado já pronto para o resumo. */
   found: { id: number; name: string }[]
 }
 
@@ -15,12 +23,15 @@ interface Props {
   trail: TrailState
   /** Espécies mais prováveis na região, da mais para a menos registrada. */
   items: SpeciesCount[]
+  /** Inclui ou tira a espécie da trilha. */
   onToggle: (taxon: Taxon) => void
   /** Fecha a tela mantendo a trilha em andamento. */
   onMinimize: () => void
+  /** Fecha o resumo e descarta a trilha. */
   onFinish: () => void
 }
 
+/** Duração em "mm:ss" ou, passando de uma hora, "h:mm:ss". */
 function clock(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000))
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -28,19 +39,26 @@ function clock(ms: number): string {
   return `${hours ? `${hours}:` : ''}${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`
 }
 
+/** Minúsculas e sem acentos, para o filtro achar "sabia" em "Sabiá". */
 const normalize = (text: string) =>
   text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
 
-/** Modo trilha: lista de toque rápido com as espécies prováveis e, no fim, um resumo para compartilhar. */
+/**
+ * Modo trilha: lista de toque rápido com as espécies prováveis e, no fim, um resumo para compartilhar.
+ * Não fecha tocando fora nem com Esc, para não interromper a trilha sem querer: só minimizar ou encerrar.
+ */
 export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
   const [now, setNow] = useState(Date.now)
   const [query, setQuery] = useState('')
+  /** Momento em que a pessoa encerrou; não é salvo, então reabrir o app volta para a trilha em andamento. */
   const [ended, setEnded] = useState<number | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // Relógio: atualiza a cada segundo até a trilha ser encerrada. A duração sai sempre de `start`, então o
+  // tempo continua contando com a tela minimizada ou o app fechado.
   useEffect(() => {
     if (ended != null) return
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -48,6 +66,7 @@ export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
   }, [ended])
 
   const foundIds = useMemo(() => new Set(trail.found.map((f) => f.id)), [trail.found])
+  // filtro por nome popular ou científico; no máximo 80 itens para a lista continuar leve no celular
   const visible = useMemo(() => {
     const term = normalize(query.trim())
     return items
@@ -62,6 +81,7 @@ export function Trail({ trail, items, onToggle, onMinimize, onFinish }: Props) {
     `Registrado no Bichodex: ${SITE_URL}`,
   ].join('\n')
 
+  /** Compartilha o resumo pela Web Share API; sem ela (desktop), copia para a área de transferência. */
   async function share() {
     if (navigator.share) {
       await navigator.share({ text: summary }).catch(() => {})

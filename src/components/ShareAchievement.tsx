@@ -1,3 +1,8 @@
+// Tela "Compartilhar conquista": monta o cartão de espécie avistada (imagem JPEG) e oferece compartilhar
+// (Web Share API) ou baixar. Aberta pelo App.tsx a partir da ficha (SpeciesDetail). Busca as fotos da espécie
+// com fetchTaxon (iNaturalist), desenha com drawCard/loadImage (shareCard.ts) usando o tema atual (themes.ts).
+// Onde e quando foi o avistamento ficam no App (localStorage); aqui só se edita pelos callbacks.
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchTaxon, type Photo, type Taxon } from '../api'
 import { categoryOf } from '../categories'
@@ -6,6 +11,7 @@ import { CARD_SIZES, SITE_URL, drawCard, loadImage, type CardFormat } from '../s
 import { currentTheme } from '../themes'
 import { SeenAtField } from './SpeciesDetail'
 
+/** De onde vem a foto do cartão: catálogo do iNaturalist ou arquivo enviado pela pessoa. */
 type Source = 'catalog' | 'own'
 
 /** Só reutilizamos fotos do catálogo com licença Creative Commons que permita obras derivadas. */
@@ -13,13 +19,16 @@ function isReusable(photo: Photo | null | undefined): photo is Photo {
   return !!(photo?.medium_url ?? photo?.square_url) && !!photo?.license_code && !photo.license_code.includes('nd')
 }
 
+/** URL da versão grande da foto: o iNaturalist só muda o tamanho no nome do arquivo (square/medium/large). */
 const largeUrl = (photo: Photo) => (photo.medium_url ?? photo.square_url)!.replace(/\/(medium|square)\./, '/large.')
 
+/** Sorteia uma foto da lista, evitando repetir `except` quando há outra opção; null se a lista estiver vazia. */
 const pickRandom = (photos: Photo[], except?: Photo | null): Photo | null => {
   const pool = photos.length > 1 ? photos.filter((photo) => photo !== except) : photos
   return pool[Math.floor(Math.random() * pool.length)] ?? null
 }
 
+/** Nome em minúsculas, sem acentos e com hífens, para o nome do arquivo baixado. */
 const slug = (text: string) =>
   text
     .normalize('NFD')
@@ -30,6 +39,7 @@ const slug = (text: string) =>
 
 interface Props {
   taxon: Taxon
+  /** Nome do local escolhido (ex.: "Ribeirão Preto, São Paulo"), impresso quando não foi no zoológico. */
   place: string
   /** Posição desta espécie entre as avistadas pela pessoa. */
   ordinal: number
@@ -41,6 +51,10 @@ interface Props {
   onClose: () => void
 }
 
+/**
+ * Folha do cartão de conquista. Redesenha o canvas de prévia sempre que muda foto, formato, local ou data,
+ * e converte o resultado em Blob JPEG para os botões de compartilhar e baixar.
+ */
 export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, seenAt, onSeenAtChange, onClose }: Props) {
   /** Fotos do catálogo que podem ilustrar o cartão; null enquanto a lista é consultada. */
   const [catalogPhotos, setCatalogPhotos] = useState<Photo[] | null>(null)
@@ -92,12 +106,15 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
   const catalogUrl = catalogPhoto && largeUrl(catalogPhoto)
   const catalogReady = catalogPhotos !== null
 
+  // Desenha o cartão. Espera a lista do catálogo para não piscar um cartão sem foto antes da foto certa.
+  // `cancelled` descarta renderizações antigas que terminem depois de uma troca de opção.
   useEffect(() => {
     if (!catalogReady) return
     let cancelled = false
     setImage(null)
     setWarning(null)
 
+    /** Carrega a foto e o logo em paralelo (falha vira aviso e cartão sem foto), desenha e gera o JPEG. */
     async function render() {
       const usingCatalog = source === 'catalog' && catalogUrl
       const photoSource = usingCatalog ? catalogUrl : source === 'own' ? ownPhoto : null
@@ -140,14 +157,17 @@ export function ShareAchievement({ taxon, place, ordinal, where, onWhereChange, 
     }
   }, [catalogReady, source, ownPhoto, format, catalogUrl, catalogPhoto, taxon, name, category, place, atZoo, ordinal, seenDay])
 
+  // O File serve ao navigator.share; a URL de objeto, ao link de download (revogada quando a imagem muda).
   const fileName = `bichodex-${slug(name) || taxon.id}.jpg`
   const file = useMemo(() => image && new File([image], fileName, { type: 'image/jpeg' }), [image, fileName])
   const downloadUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image])
   useEffect(() => () => void (downloadUrl && URL.revokeObjectURL(downloadUrl)), [downloadUrl])
 
   const text = `Avistei ${name} (${taxon.name}) ${atZoo ? 'no zoológico' : `em ${place}`}! É a minha ${ordinal}ª espécie no #Bichodex 🐾\nVeja a ficha: ${SITE_URL}#/especie/${taxon.id}`
+  // Compartilhar arquivo só existe em parte dos navegadores (celulares, sobretudo); sem isso, fica só o download.
   const canShareFile = !!file && !!navigator.canShare?.({ files: [file] })
 
+  /** Abre a folha de compartilhamento do sistema com a imagem e o texto (com link para a ficha). */
   async function share() {
     if (!file) return
     try {

@@ -1,6 +1,15 @@
 // Espécies do jogo "Onde Vive?". Prefira espécies de distribuição restrita
 // (endêmicas), senão o desafio fica fácil demais.
 // Formato: [nome popular, nome científico, título do artigo na Wikipédia em português (opcional)]
+//
+// - O nome científico é casado no GBIF (ocorrências) e no iNaturalist (foto). Sem o título da
+//   Wikipédia, o build tenta o nome científico e depois o nome popular; passe o título quando o
+//   artigo tiver outro nome (ex.: um nome popular diferente ou com desambiguação).
+// - O build exige pelo menos 3 pontos silvestres no mapa; se uma espécie ficar com menos, ele avisa
+//   ("Poucos pontos") e não grava o data.js. Troque a espécie.
+// - Acrescente no fim, de preferência em lotes: mudar a quantidade reembaralha a ordem dos desafios dos
+//   próximos dias (dailyIndex() em shared/common.js). Depois rode `node tools/build-onde-vive.mjs`
+//   de dentro de biodiversigames/.
 
 export default [
   ['Mico-leão-dourado', 'Leontopithecus rosalia'],

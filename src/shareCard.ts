@@ -1,40 +1,57 @@
 // Desenha o cartão de conquista ("espécie avistada") em um canvas, pronto para virar imagem.
+// Usado por ShareAchievement.tsx (drawCard, CARD_SIZES); loadImage também serve ao Coloring.tsx e SITE_URL
+// à Trilha e ao Bicho 2048. Só canvas 2D, sem estado nem armazenamento; as cores e a fonte dos títulos vêm do tema (themes.ts).
 
 import type { Theme } from './themes'
 
 /** Endereço público do Bichodex, impresso no cartão e incluído no texto de compartilhamento. */
 export const SITE_URL = 'https://robsonbaioco.github.io/bichodex/'
 
+/** Formato do cartão: post de feed (4:5) ou stories (9:16). */
 export type CardFormat = 'feed' | 'stories'
 
+/** Tamanho em pixels de cada formato (o recomendado pelo Instagram). O layout abaixo é fixo para 1080 de largura. */
 export const CARD_SIZES: Record<CardFormat, { width: number; height: number }> = {
   feed: { width: 1080, height: 1350 },
   stories: { width: 1080, height: 1920 },
 }
 
+/** Tudo o que vai impresso no cartão. */
 export interface CardData {
   format: CardFormat
+  /** Nome popular (até duas linhas). */
   name: string
   scientificName: string
   categoryLabel: string
   categoryEmoji: string
+  /** Cor da categoria, que preenche o quadro da foto enquanto ela não cobre (ou quando não há foto). */
   color: string
+  /** Linha de local, já montada (ex.: "No zoológico · 03/11/2026"). */
   place: string
   /** Texto do selo sobre a foto (ex.: "ESPÉCIE AVISTADA!"). */
   seal: string
   /** Quantas espécies a pessoa já avistou, contando esta. */
   ordinal: number
+  /** Autoria da foto do catálogo, impressa no rodapé (exigência da licença CC). */
   credit?: string
+  /** Foto já carregada; null desenha o emoji da categoria no lugar. */
   photo: HTMLImageElement | null
   logo: HTMLImageElement | null
   /** Tema em uso, de onde vêm as cores e a fonte dos títulos. */
   theme: Theme
 }
 
+/** Fonte dos textos que não são título. */
 const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+/** Margem lateral do cartão, em pixels. */
 const MARGIN = 60
 
-/** Carrega uma imagem de forma que possa ser exportada do canvas (exige CORS para URLs remotas). */
+/**
+ * Carrega uma imagem de forma que possa ser exportada do canvas (exige CORS para URLs remotas).
+ * Aceita URL ou Blob/File (foto enviada pela pessoa). Baixa como Blob e decodifica a partir de uma URL de
+ * objeto, assim o canvas não fica "contaminado" e toBlob/toDataURL/getImageData continuam funcionando.
+ * Rejeita se a resposta não for OK, se o servidor não liberar CORS ou se o arquivo não for imagem.
+ */
 export async function loadImage(source: string | Blob): Promise<HTMLImageElement> {
   const blob =
     typeof source === 'string'
@@ -55,6 +72,7 @@ export async function loadImage(source: string | Blob): Promise<HTMLImageElement
   }
 }
 
+/** Quebra o texto em linhas que caibam em `maxWidth` com a fonte atual do contexto (palavra longa demais fica inteira). */
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const lines: string[] = []
   let line = ''
@@ -71,6 +89,7 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
   return lines
 }
 
+/** Corta o texto com "…" até caber em `maxWidth` com a fonte atual do contexto. */
 function ellipsize(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string {
   if (ctx.measureText(text).width <= maxWidth) return text
   let cut = text
@@ -78,6 +97,12 @@ function ellipsize(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
   return `${cut.trimEnd()}…`
 }
 
+/**
+ * Redimensiona o canvas para o formato pedido e desenha o cartão inteiro: fundo com faixa diagonal, cabeçalho
+ * com logo e endereço, foto recortada com cantos arredondados, selo, nome, nome científico, categoria e local,
+ * frase do ordinal e crédito da foto. As posições são fixas a partir do topo e do fim do cartão; a foto ocupa
+ * o que sobra no meio, por isso o stories ganha uma foto mais alta.
+ */
 export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   const { width: W, height: H } = CARD_SIZES[data.format]
   canvas.width = W
@@ -85,6 +110,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   const ctx = canvas.getContext('2d')!
   const inner = W - MARGIN * 2
   const { card, displayFont, displayWeight } = data.theme
+  // cor do texto com transparência; color-mix no canvas exige navegador recente (nos antigos o fillStyle é ignorado)
   const soft = (alpha: number) => `color-mix(in srgb, ${card.ink} ${alpha * 100}%, transparent)`
 
   // Fundo
@@ -112,6 +138,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
 
   // Foto
   const photoTop = 170
+  // 540 px reservados embaixo para selo, textos e rodapé
   const photoHeight = H - photoTop - 540
   ctx.save()
   ctx.beginPath()
@@ -120,6 +147,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
   ctx.fillStyle = data.color
   ctx.fillRect(MARGIN, photoTop, inner, photoHeight)
   if (data.photo) {
+    // "cover": escala para cobrir o quadro todo e centraliza; o que sobra é cortado pelo clip
     const scale = Math.max(inner / data.photo.naturalWidth, photoHeight / data.photo.naturalHeight)
     const w = data.photo.naturalWidth * scale
     const h = data.photo.naturalHeight * scale
@@ -159,6 +187,7 @@ export function drawCard(canvas: HTMLCanvasElement, data: CardData): void {
     lines = wrap(ctx, data.name, inner)
     size -= 6
   } while (lines.length > 2 && size >= 46)
+  // desfaz o último decremento: `size` volta a ser o da fonte em uso
   size += 6
   lines = lines.slice(0, 2).map((line) => ellipsize(ctx, line, inner))
 

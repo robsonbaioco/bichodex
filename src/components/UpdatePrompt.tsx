@@ -1,3 +1,5 @@
+// Aviso de versão nova, montado pelo main.tsx ao lado do App. Usa updates.ts para saber quando há
+// publicação nova; fora dos jogos recarrega a página sozinho, nos jogos mostra um cartão com o botão.
 import { useEffect, useState } from 'react'
 import { watchForUpdates } from '../updates'
 
@@ -10,6 +12,7 @@ export function UpdatePrompt() {
 
   useEffect(() => {
     if (!import.meta.env.PROD) return
+    // sem limpeza: o componente vive o tempo todo, e os ouvintes registrados duram até a página recarregar
     watchForUpdates(() => (busy() ? setAvailable(true) : location.reload()))
   }, [])
 

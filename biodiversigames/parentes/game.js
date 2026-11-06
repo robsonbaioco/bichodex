@@ -1,7 +1,13 @@
+// Parentes: ordenar 5 espécies da mais à menos aparentada com a espécie-alvo do dia.
+// Espera no HTML: #day-label, #btn-practice, #btn-stats, #btn-help, #mode-banner, #target, #options,
+// #tries, #btn-submit e #result. Espera de data.js `window.PARENTES_DATA` = { source, puzzles: [{ target,
+// answer (já na ordem certa, do mais próximo ao mais distante), fact }] }.
+// Usa de common.js (BG): desafio do dia, shuffle com semente, load/save, estatísticas, el, toast,
+// modal, share, statsPanel, lossScreen e bichodexUrl.
 (function () {
   'use strict';
   const { el } = BG;
-  const GAME = 'parentes';
+  const GAME = 'parentes'; // prefixo das chaves no localStorage (o catálogo usa o mesmo)
   const MAX_TRIES = 4;
   const SHARE_URL = BG.bichodexUrl('parentes'); // link direto para o jogo dentro do Bichodex, no fim do texto compartilhado
   const DATA = window.PARENTES_DATA;
@@ -9,18 +15,22 @@
   const today = BG.todayNumber();
 
   const $ = (id) => document.getElementById(id);
+  // puzzle: o puzzle em jogo; state: { order, history, done, won, revealed? }; practice: modo treino?
   let puzzle, state, practice;
 
   // ---------- início ----------
 
+  /** Abre o desafio de hoje, retomando a partida salva no localStorage (`parentes:day:<n>`), se houver. */
   function startDaily() {
     practice = false;
     const idx = BG.dailyIndex(today, puzzles.length);
     puzzle = puzzles[idx];
+    // Semente `dia-<n>`: a ordem inicial das opções é a mesma para todo mundo no dia.
     state = BG.load(`${GAME}:day:${today}`, null) || freshState(`dia-${today}`);
     render();
   }
 
+  /** Modo treino: um puzzle sorteado (diferente do de hoje), que não é salvo nem conta nas estatísticas. */
   function startPractice() {
     practice = true;
     const daily = BG.dailyIndex(today, puzzles.length);
@@ -32,10 +42,12 @@
     render();
   }
 
+  /** Partida nova: as 5 opções embaralhadas (com `seed`, ou ao acaso se não vier) e nenhuma tentativa. */
   function freshState(seed) {
     return { order: BG.shuffle(puzzle.answer.map((a) => a.sci), seed), history: [], done: false, won: false };
   }
 
+  /** Salva a partida do dia no localStorage (no treino, não salva nada). */
   function persist() {
     if (!practice) BG.save(`${GAME}:day:${today}`, state);
   }
@@ -45,10 +57,12 @@
 
   // ---------- renderização ----------
 
+  /** Opção do puzzle pelo nome científico. */
   function byName(sci) {
     return puzzle.answer.find((a) => a.sci === sci);
   }
 
+  /** Redesenha a tela inteira a partir de `puzzle` e `state`: alvo, opções, tentativas e resultado. */
   function render() {
     $('day-label').textContent = practice ? 'treino' : `#${today}`;
     $('btn-practice').setAttribute('aria-pressed', String(practice));
@@ -73,10 +87,15 @@
     else if (state.done) renderResult();
   }
 
+  /** Última tentativa conferida ({ order, marks }) ou null. */
   function lastFeedback() {
     return state.history[state.history.length - 1] || null;
   }
 
+  /**
+   * Desenha a lista de opções (#options) na ordem atual, com ▲▼ e arrastar. No fim (sem véu),
+   * mostra a ordem certa toda em verde.
+   */
   function renderOptions() {
     const list = $('options');
     list.classList.toggle('locked', state.done);
@@ -88,11 +107,13 @@
       let cls = 'option';
       let hint = '';
       if (showAnswer) cls += ' good';
+      // Só marca o cartão que continua na mesma posição em que foi conferido; ao mexer, a dica some.
       else if (fb && fb.order[i] === sci) {
         const right = puzzle.answer.findIndex((a) => a.sci === sci);
         if (right === i) cls += ' good';
         else {
           cls += ' bad';
+          // ⬆️ = o lugar certo é mais acima (parente mais próximo); ⬇️ = mais abaixo.
           hint = right < i ? '⬆️' : '⬇️';
         }
       }
@@ -111,6 +132,7 @@
     }));
   }
 
+  /** Linhas de 🟩/⬜ de cada tentativa e quantas tentativas restam (#tries). */
   function renderTries() {
     const lines = state.history.map((h) => h.marks.map((ok) => (ok ? '🟩' : '⬜')).join(''));
     const left = MAX_TRIES - state.history.length;
@@ -120,6 +142,10 @@
     );
   }
 
+  /**
+   * Tela de resultado (#result): título, curiosidade, a ordem certa com o ancestral comum de cada
+   * opção (clado e nº de espécies descendentes, vindos do data.js), créditos e botões.
+   */
   function renderResult() {
     const tries = state.history.length;
     const head = state.won
@@ -133,6 +159,7 @@
           el('strong', { text: `${i + 1}. ${a.common}` }), ' ', el('em', { class: 'clade', text: a.sci }),
           el('div', { class: 'clade' },
             'Ancestral comum com o alvo: ',
+            // exact = false: o ancestral é um nó sem nome na árvore; `clade` é o grupo com nome que o contém.
             a.exact ? '' : 'um grupo sem nome dentro de ',
             el('b', { text: a.clade }),
             a.cladePt ? ` (${a.cladePt})` : '',
@@ -159,6 +186,7 @@
 
   // ---------- jogadas ----------
 
+  /** Troca a opção da posição `i` com a vizinha (`dir` = -1 sobe, 1 desce) e salva. */
   function move(i, dir) {
     const j = i + dir;
     if (state.done || j < 0 || j >= state.order.length) return;
@@ -167,6 +195,10 @@
     renderOptions();
   }
 
+  /**
+   * Confere a ordem atual: cada posição certa vale um 🟩. Ganha com as 5 certas; perde ao gastar as
+   * MAX_TRIES tentativas. No diário, grava o resultado (faixa = nº da tentativa - 1) e abre as estatísticas.
+   */
   function submit() {
     if (state.done) return;
     const marks = state.order.map((sci, i) => puzzle.answer[i].sci === sci);
@@ -188,6 +220,7 @@
     }
   }
 
+  /** Depois da derrota, a pessoa pediu para ver a resposta: tira o véu (salvo em `state.revealed`). */
   function reveal() {
     state.revealed = true;
     persist();
@@ -196,6 +229,7 @@
     if (!practice) setTimeout(showStats, 1500);
   }
 
+  /** Copia o resultado em emoji (nº de tentativas, alvo e a grade 🟩/⬜) com o link do jogo no Bichodex. */
   function shareResult() {
     const score = state.won ? `${state.history.length}/${MAX_TRIES}` : `X/${MAX_TRIES}`;
     const grid = state.history.map((h) => h.marks.map((ok) => (ok ? '🟩' : '⬜')).join('')).join('\n');
@@ -204,8 +238,9 @@
 
   // ---------- arrastar e soltar (mouse e toque) ----------
 
-  let drag = null;
+  let drag = null; // { li, startY, moved } enquanto um cartão está sendo arrastado
 
+  /** Começa a arrastar um cartão (pointer events cobrem mouse e toque). Ignora os botões ▲▼ e o botão direito. */
   function startDrag(e) {
     if (e.target.closest('button') || e.button > 0) return;
     const li = e.currentTarget;
@@ -216,13 +251,17 @@
     li.addEventListener('pointercancel', endDrag);
   }
 
+  /**
+   * Move o cartão com o dedo/mouse. Ao passar da metade do vizinho, troca de lugar com ele no DOM e
+   * desloca `startY` pela altura dele, para o cartão continuar colado no ponteiro.
+   */
   function onDrag(e) {
     const { li } = drag;
     let dy = e.clientY - drag.startY;
-    if (!drag.moved && Math.abs(dy) < 4) return;
+    if (!drag.moved && Math.abs(dy) < 4) return; // menos de 4 px conta como toque, não arraste
     drag.moved = true;
     li.classList.add('dragging');
-    const gap = 8;
+    const gap = 8; // espaço entre os cartões (deve bater com o gap de .options no CSS)
     const next = li.nextElementSibling;
     const prev = li.previousElementSibling;
     if (next && dy > next.offsetHeight / 2 + gap) {
@@ -236,6 +275,7 @@
     li.style.transform = `translateY(${dy}px)`;
   }
 
+  /** Solta o cartão: lê a nova ordem direto do DOM, salva e redesenha. */
   function endDrag() {
     const { li, moved } = drag;
     li.removeEventListener('pointermove', onDrag);
@@ -252,6 +292,7 @@
 
   // ---------- modais ----------
 
+  /** Modal "Como jogar" (abre sozinho na primeira visita). */
   function showHelp() {
     BG.modal('Como jogar',
       el('p', {}, 'Todo dia há uma ', el('strong', { text: 'espécie-alvo' }), ' e cinco outras espécies. Ordene as cinco da mais aparentada à menos aparentada com o alvo.'),
@@ -266,6 +307,7 @@
     );
   }
 
+  /** Modal de estatísticas, com uma faixa por tentativa (1ª a 4ª). */
   function showStats() {
     BG.modal('Estatísticas', BG.statsPanel(BG.getStats(GAME, MAX_TRIES), ['1ª', '2ª', '3ª', '4ª']));
   }
@@ -276,6 +318,7 @@
   $('btn-practice').addEventListener('click', () => (practice ? startDaily() : startPractice()));
 
   startDaily();
+  // Na primeira visita, abre o "Como jogar" uma única vez.
   if (!BG.load(`${GAME}:seen-help`, false)) {
     BG.save(`${GAME}:seen-help`, true);
     showHelp();

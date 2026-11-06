@@ -1,3 +1,9 @@
+// Aba "Mapa": mostra num mapa Leaflet (tiles do OpenStreetMap) os registros mais recentes do
+// iNaturalist dentro da área de busca, e uma lista das espécies desses pontos logo abaixo.
+// Usada pelo App.tsx, que passa o local, o raio, os filtros da aba Explorar e as espécies avistadas.
+// Chama fetchRecentSightings (pontos) e fetchCountsForTaxa (só com filtro de raridade) do api.ts.
+// Não guarda nada no localStorage: marcar como avistado e abrir a ficha são repassados ao App.
+
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
@@ -15,17 +21,21 @@ interface Props {
   query: string
   /** Controles dos filtros, mostrados acima do mapa. */
   filters: ReactNode
+  /** Ids das espécies já avistadas. */
   seen: Set<number>
+  /** Abre a ficha da espécie. */
   onOpen: (id: number) => void
+  /** Marca ou desmarca a espécie como avistada (quem guarda é o App). */
   onToggleSeen: (taxon: Taxon) => void
 }
 
+/** Data AAAA-MM-DD em dd/mm/aaaa; o meio-dia evita que o fuso puxe a data para o dia anterior. */
 const formatDate = (iso?: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR') : '')
 
 /** Cor da categoria; as que seguem o tema (var(--brand)) não valem para o desenho do mapa. */
 const markerColor = (color: string) => (color.startsWith('var(') ? '#0f7a4d' : color)
 
-/** Distância em linha reta, em km. */
+/** Distância em linha reta, em km (fórmula de haversine; 12742 é o diâmetro da Terra). */
 function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const rad = Math.PI / 180
   const dLat = (b.lat - a.lat) * rad
@@ -45,10 +55,13 @@ interface MapSpecies {
   lastDate?: string
 }
 
+/** Ordem da lista: mais perto primeiro ou mais registros primeiro. */
 type SortBy = 'near' | 'records'
 
+/** Linhas da lista mostradas de cada vez (o "Mostrar mais" soma outra página). */
 const LIST_PAGE = 30
 
+/** Texto sem acentos e em minúsculas, para a busca por nome ignorar acento e caixa. */
 const normalize = (text: string) =>
   text
     .normalize('NFD')
@@ -74,6 +87,8 @@ export default function MapView({
   const area = useRef<L.Circle | null>(null)
   /** Se o mapa está aproximado numa espécie da lista. */
   const zoomedIn = useRef(false)
+  // Os popups são montados com DOM puro (fora do React) e guardam estas funções nos onclick;
+  // as refs garantem que eles sempre chamem a versão mais nova das props.
   const openRef = useRef(onOpen)
   openRef.current = onOpen
   // por referência, para marcar uma espécie não redesenhar todos os pontos
@@ -132,6 +147,8 @@ export default function MapView({
     return () => controller.abort()
   }, [place, radius, category, threatened])
 
+  // A raridade depende do total de registros de cada espécie na região, que não vem junto com os
+  // pontos: busca as contagens uma vez por lista de pontos, só quando o filtro de raridade é ligado.
   const needCounts = !!rarity && !!sightings && !counts
   useEffect(() => {
     if (!needCounts || !sightings) return
@@ -179,6 +196,8 @@ export default function MapView({
     [visible, focus],
   )
 
+  // Redesenha os pontos: limpa a camada e cria um círculo por registro, com um popup feito à mão
+  // (Leaflet recebe um elemento DOM, não JSX). A cor do ponto é a da categoria da espécie.
   useEffect(() => {
     const layer = markers.current
     if (!layer) return
@@ -199,6 +218,7 @@ export default function MapView({
       button.textContent = '📖 Ver ficha'
       button.onclick = () => openRef.current(sighting.taxon.id)
       const seenButton = document.createElement('button')
+      // pinta o botão na hora do clique, sem esperar o React (o popup não é re-renderizado por ele)
       const paintSeen = (isSeen: boolean) => {
         seenButton.className = `btn${isSeen ? ' is-seen' : ''}`
         seenButton.textContent = isSeen ? '✓ Avistado' : '👁️ Marcar como avistado'
@@ -237,12 +257,15 @@ export default function MapView({
     // place e radius entram porque o mapa (e a camada de pontos) é recriado quando mudam
   }, [onMap, focus, counts, place, radius])
 
+  /** Toque numa linha da lista: foca o mapa nessa espécie (ou desfaz, se já era ela) e rola até o mapa. */
   function pick(id: number) {
     setFocusId((current) => (current === id ? null : id))
     node.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
+  // filtros aplicados aqui no cliente: o cabeçalho mostra "X de Y registros"
   const filtered = !!rarity || query.trim().length > 0
+  // filtros aplicados no servidor: aparecem só como observação no fim da frase
   const notes = [category.id !== 'all' ? category.label : '', rarity?.label ?? '', threatened ? 'em risco de extinção' : '']
     .filter(Boolean)
     .join(' · ')

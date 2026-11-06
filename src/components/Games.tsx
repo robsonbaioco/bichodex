@@ -1,18 +1,35 @@
+// Aba "Jogos": a lista de jogos e o jogo aberto. Usada pelo App.tsx.
+// - Bicho 2048 é um componente React (Game2048.tsx).
+// - "Colorir os bichos" é só a escolha do bicho aqui; a página de colorir é aberta pelo App (onColor).
+// - Os três jogos do Biodiversigames são páginas estáticas em public/jogos/<id>/ (copiadas de
+//   biodiversigames/ por scripts/copiar-jogos.mjs), abertas num iframe. Não há troca de mensagens com
+//   o app: eles guardam o próprio progresso no localStorage (mesma origem, chaves sem o prefixo
+//   'bichodex:') e o texto de compartilhar aponta para #/jogos/<id> do Bichodex.
+// O jogo aberto fica no endereço (#/jogos/<id>), então links diretos funcionam.
+
 import { useEffect, useState, type CSSProperties } from 'react'
 import { fetchTaxaByIds, type Place, type Taxon } from '../api'
 import { categoryOf } from '../categories'
 import { displayName } from '../format'
 import { Game2048 } from './Game2048'
 
+/** Um jogo da lista; `id` é o que aparece no endereço (#/jogos/<id>). */
 type GameInfo = {
   id: string
   emoji: string
   name: string
   description: string
-  /** Jogos estáticos em public/jogos/ (gerados pelo projeto biodiversigames), abertos num iframe. */
+  /**
+   * Jogos estáticos em public/jogos/ (copiados de biodiversigames/ por `npm run jogos`), abertos num iframe.
+   * Caminho relativo: funciona porque o Vite usa base './'. Sem `src`, o jogo é desenhado aqui mesmo.
+   */
   src?: string
 }
 
+/**
+ * Jogos da aba, na ordem da lista. Para um jogo novo do Biodiversigames: acrescente aqui com `src`
+ * e inclua o id em GAMES de scripts/copiar-jogos.mjs.
+ */
 const GAMES: GameInfo[] = [
   {
     id: '2048',
@@ -49,6 +66,10 @@ const GAMES: GameInfo[] = [
   },
 ]
 
+/**
+ * Moldura do iframe: ocupa a altura da tela menos a barra do topo e as abas (os 11rem), usando
+ * os tokens do tema. Atenção: `--rad` não é definida em nenhum CSS, então o canto sai reto.
+ */
 const FRAME_STYLE: CSSProperties = {
   display: 'block',
   width: '100%',
@@ -66,6 +87,7 @@ function gameFromHash(): string | null {
 }
 
 /** Escolha de qual bicho avistado vai para a página de colorir. */
+/** Busca no iNaturalist os dados das espécies avistadas e mostra uma grade para escolher qual colorir. */
 function ColoringPicker({ seen, onColor }: { seen: number[]; onColor: (taxon: Taxon) => void }) {
   const [taxa, setTaxa] = useState<Taxon[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -115,20 +137,23 @@ interface Props {
   radius: number
   /** Espécies avistadas, para a página de colorir. */
   seen: number[]
+  /** Abre a página de colorir do bicho escolhido (montada pelo App). */
   onColor: (taxon: Taxon) => void
 }
 
-/** Tela "Jogos": novos jogos entram na lista acima. */
+/** Tela "Jogos": a lista ou o jogo aberto, conforme o endereço. Novos jogos entram em GAMES, acima. */
 export function Games({ place, radius, seen, onColor }: Props) {
   const [openGame, setOpenGame] = useState<string | null>(gameFromHash)
   const game = GAMES.find((g) => g.id === openGame)
 
+  // o endereço é a fonte da verdade: abrir, fechar e o botão Voltar do navegador passam pelo hashchange
   useEffect(() => {
     const onHashChange = () => setOpenGame(gameFromHash())
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
+  /** Abre um jogo (ou volta para a lista, com null) só mudando o endereço; o hashchange faz o resto. */
   const open = (id: string | null) => {
     location.hash = id ? `#/jogos/${id}` : '#/jogos'
   }

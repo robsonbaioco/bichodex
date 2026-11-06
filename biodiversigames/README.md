@@ -80,8 +80,9 @@ sequência dos próximos dias**: acrescente conteúdo de uma vez, de preferênci
    - *Embed options*: tamanho sugerido **800 × 900** (Onde Vive? fica melhor com **900 × 1000**),
      marque **Mobile friendly** (orientação *Portrait*), **Automatically start on page load** e **Fullscreen button**.
    - *Pricing*: **No payments** (veja licenças abaixo).
-3. Depois de publicar, coloque o link do jogo em `SHARE_URL` no `game.js` de cada jogo, para o link
-   aparecer no texto compartilhado, e reenvie o zip.
+3. O texto compartilhado termina com o link do jogo dentro do Bichodex (`SHARE_URL` no `game.js` de cada
+   jogo, que vem de `BG.bichodexUrl()` em `shared/common.js`). Para apontar para a página do itch.io,
+   troque o valor de `SHARE_URL` e reenvie o zip.
 
 Os jogos carregam recursos externos em tempo de execução: as fotos (servidor do iNaturalist), a fonte
 Nunito (Google Fonts) e, no Onde Vive?, o Leaflet (cdnjs) e os tiles do mapa-base do GBIF. O itch.io

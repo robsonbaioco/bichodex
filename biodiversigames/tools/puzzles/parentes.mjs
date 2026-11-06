@@ -3,6 +3,22 @@
 // consulta o Open Tree of Life e ordena pelo ancestral comum mais recente.
 // Se duas opções tiverem o mesmo ancestral comum com o alvo, o build falha.
 // Formato: [nome popular, nome científico]
+//
+// Cada puzzle é um objeto com:
+// - target: [nome popular, nome científico] da espécie-alvo.
+// - options: exatamente 5 pares [nome popular, nome científico], em qualquer ordem (o jogo embaralha).
+// - fact: frase curta mostrada no fim da partida (a curiosidade que explica a resposta).
+// O nome científico precisa existir no Open Tree of Life (casamento exato, sem aproximação) e no
+// iNaturalist (para a foto); se não existir, o build para com erro e diz qual nome falhou.
+//
+// Como acrescentar com segurança:
+// 1. Escolha opções com graus de parentesco bem diferentes (ex.: mesma ordem, mesma classe, outro filo).
+// 2. Acrescente no fim da lista, de preferência em lotes. O desafio do dia sai de dailyIndex() em
+//    shared/common.js: uma ordem embaralhada cuja semente é a QUANTIDADE de puzzles, contada a partir de
+//    01/10/2026. Mudar a quantidade reembaralha todos os dias seguintes; mudar a posição dos existentes
+//    troca o puzzle de cada dia.
+// 3. Rode `node tools/build-parentes.mjs` (de dentro de biodiversigames/), confira a ordem no console
+//    e traduza em clades-pt.mjs os clados novos que aparecerem.
 
 export default [
   {

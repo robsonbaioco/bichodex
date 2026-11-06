@@ -36,4 +36,6 @@ npm run deploy   # build e publicação no GitHub Pages (branch gh-pages)
 npm run jogos    # copia os jogos de biodiversigames/ para public/jogos/ (já roda antes do dev e do build)
 ```
 
+A documentação para manutenção (arquitetura, dados salvos, APIs, como cada tela funciona, receitas e pontos frágeis) está em [`docs/`](docs/README.md). Cada arquivo de código também explica no topo o seu papel, e cada função tem um comentário dizendo o que faz.
+
 Os jogos diários têm código, dados e gerador próprios em [`biodiversigames/`](biodiversigames/README.md), que é a única fonte deles; `public/jogos/` é gerado e fica fora do git.

@@ -1,6 +1,20 @@
 // Demais datas do calendário "Datas Comemorativas" (edição de 2025), mostradas só como lembrete do dia.
 // Chave: mês-dia. As datas são tratadas como fixas em qualquer ano.
+//
+// Papel: só conteúdo, sem lógica. Quem lê é remindersOn() em src/highlights.ts, que procura a chave do
+// dia e o componente Highlights mostra a lista como texto ("📅 Hoje também é: ..."). Não há notificação:
+// é apenas uma linha no destaque da home. Estas datas não têm animal; as que têm ficam em
+// specialDays.ts (datas de animais) e associatedDays.ts (datas associadas a um animal).
+//
+// Formato de cada entrada: 'MM-DD': ['Nome da data', ...]
+// - A chave precisa ter dois dígitos no mês e no dia ('03-08', não '3-8'), porque é comparada com o
+//   final de dayKey() (AAAA-MM-DD).
+// - O valor é uma lista; os nomes aparecem na ordem escrita, separados por " · ".
+// - Para acrescentar uma data, inclua o nome na lista do dia (ou crie a chave, mantendo a ordem do ano).
+//   Não repita uma chave (o TypeScript acusa erro): se o dia já existe, acrescente o nome na lista dele.
+// - Datas móveis (ex.: "segundo domingo de maio") não cabem aqui; só datas fixas.
 
+/** Lembretes de texto por dia do ano ('MM-DD' → nomes das datas). */
 export const REMINDERS: Record<string, string[]> = {
   '01-01': ['Ano Novo'],
   '01-02': ['Dia do Sanitarista'],

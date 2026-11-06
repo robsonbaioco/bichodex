@@ -1,19 +1,28 @@
 // Utilitários compartilhados pelos scripts de build.
 // Todas as respostas das APIs ficam em cache em tools/.cache para que os
 // builds sejam reproduzíveis e não sobrecarreguem os serviços.
+// Usado por build-parentes.mjs, build-conexoes-selvagens.mjs, build-onde-vive.mjs (APIs e writeDataJs)
+// e package.mjs (só ROOT_DIR). Fala com iNaturalist, GBIF, Open Tree of Life e Wikipédia.
+// O cache não expira: para buscar dados novos, apague tools/.cache/ (fica fora do git).
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/** Pasta tools/ (caminho absoluto, não depende de onde o script foi chamado). */
 export const TOOLS_DIR = dirname(fileURLToPath(import.meta.url));
+/** Pasta biodiversigames/, onde ficam as pastas dos jogos. */
 export const ROOT_DIR = join(TOOLS_DIR, '..');
 const CACHE_DIR = join(TOOLS_DIR, '.cache');
+// User-Agent identificável, como pedem as regras de uso das APIs (Wikipédia e iNaturalist).
 const UA = 'biodiversigames/1.0 (jogos educativos de biodiversidade)';
 
+/** Promessa que resolve depois de `ms` milissegundos. */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// Horário (Date.now) da última chamada feita a cada host.
 const lastCall = {};
-// Respeita um intervalo mínimo entre chamadas para cada host.
+// Respeita um intervalo mínimo entre chamadas para cada host (em ms; hosts fora da lista: 200 ms).
+// O iNaturalist pede no máximo ~1 requisição por segundo, por isso o valor maior.
 const MIN_INTERVAL = {
   'api.inaturalist.org': 1100,
   'api.gbif.org': 150,
@@ -21,12 +30,21 @@ const MIN_INTERVAL = {
   'pt.wikipedia.org': 150,
 };
 
+/**
+ * Busca um JSON com cache em disco, intervalo mínimo por host e novas tentativas.
+ * - Cache: a chave é o SHA-1 de método + URL + corpo; se o arquivo existe em tools/.cache, nem chama a rede.
+ * - Novas tentativas (até 4): em falha de rede, 429 ou 5xx, esperando 2 s, 4 s, 6 s...
+ * - 404 devolve null (e não é guardado no cache); outros erros 4xx lançam exceção na hora.
+ * @param {string} url
+ * @param {{ method?: string, body?: object }} [opts] body é enviado como JSON (usado no POST do Open Tree).
+ * @returns {Promise<any|null>} o JSON da resposta, ou null se a API respondeu 404.
+ */
 export async function fetchJSON(url, { method = 'GET', body } = {}) {
   const key = createHash('sha1').update(method + url + (body ? JSON.stringify(body) : '')).digest('hex');
   const file = join(CACHE_DIR, key + '.json');
   try {
     return JSON.parse(await readFile(file, 'utf8'));
-  } catch {}
+  } catch {} // sem cache (ou cache ilegível): segue para a rede
 
   const host = new URL(url).host;
   const wait = (lastCall[host] || 0) + (MIN_INTERVAL[host] || 200) - Date.now();
@@ -55,6 +73,7 @@ export async function fetchJSON(url, { method = 'GET', body } = {}) {
       await writeFile(file, JSON.stringify(json));
       return json;
     }
+    // Só vale tentar de novo em 429 (limite de taxa) e 5xx; os demais erros não mudam com o tempo.
     if (attempt >= 4 || (res.status < 500 && res.status !== 429)) {
       throw new Error(`${res.status} ${res.statusText} em ${url}\n${await res.text()}`);
     }
@@ -64,11 +83,16 @@ export async function fetchJSON(url, { method = 'GET', body } = {}) {
 
 // ---------- iNaturalist ----------
 
+// Código de licença do iNaturalist → rótulo mostrado no crédito da foto.
 const LICENSE_LABEL = {
   cc0: 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'cc-by-nc': 'CC BY-NC',
   'cc-by-nc-sa': 'CC BY-NC-SA', 'cc-by-nd': 'CC BY-ND', 'cc-by-nc-nd': 'CC BY-NC-ND',
 };
 
+/**
+ * Monta os campos de foto usados nos data.js: foto média, miniatura quadrada, crédito
+ * ("autor · licença · iNaturalist") e link para a página do táxon no iNaturalist.
+ */
 function photoInfo(photo, taxon) {
   const url = photo.medium_url || photo.url.replace('/square.', '/medium.');
   return {
@@ -79,7 +103,13 @@ function photoInfo(photo, taxon) {
   };
 }
 
-/** Busca o táxon no iNaturalist e devolve a primeira foto com licença Creative Commons. */
+/**
+ * Busca o táxon no iNaturalist e devolve a primeira foto com licença Creative Commons.
+ * Prefere o nome científico exato; se não achar, usa o primeiro resultado e avisa no console.
+ * A foto vem, nesta ordem, da foto padrão do táxon, das demais fotos do táxon ou da observação
+ * de grau de pesquisa mais votada. Lança erro se nada tiver licença CC.
+ * @returns {Promise<{inatId, inatName, commonName, observations, photo, thumb, credit, inatUrl}>}
+ */
 export async function inatTaxon(sciName) {
   const q = encodeURIComponent(sciName);
   const data = await fetchJSON(`https://api.inaturalist.org/v1/taxa?q=${q}&locale=pt-BR&per_page=10&is_active=true`);
@@ -110,6 +140,11 @@ export async function inatTaxon(sciName) {
 
 // ---------- GBIF ----------
 
+/**
+ * Casa o nome científico com o backbone taxonômico do GBIF (/species/match).
+ * Devolve o objeto do GBIF (usageKey, kingdom, phylum, class, order, family...). Lança erro se não
+ * houver correspondência e avisa no console quando ela não é exata (FUZZY, HIGHERRANK).
+ */
 export async function gbifMatch(sciName) {
   const m = await fetchJSON(`https://api.gbif.org/v1/species/match?name=${encodeURIComponent(sciName)}&verbose=false`);
   if (!m || m.matchType === 'NONE') throw new Error(`GBIF: sem correspondência para ${sciName}`);
@@ -119,6 +154,11 @@ export async function gbifMatch(sciName) {
 
 // ---------- Wikipedia ----------
 
+/**
+ * Resumo de um artigo da Wikipédia (API REST /page/summary).
+ * Devolve { title, extract, url }, ou null se o artigo não existe ou não é um artigo comum
+ * (página de desambiguação, por exemplo).
+ */
 export async function wikiSummary(title, lang = 'pt') {
   const s = await fetchJSON(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`);
   if (!s || s.type !== 'standard') return null;
@@ -127,7 +167,12 @@ export async function wikiSummary(title, lang = 'pt') {
 
 // ---------- saída ----------
 
-/** Grava os dados como `window.<name> = {...}` para funcionar até abrindo o HTML direto do disco. */
+/**
+ * Grava os dados como `window.<name> = {...}` para funcionar até abrindo o HTML direto do disco.
+ * Sobrescreve <gameDir>/data.js inteiro, com um cabeçalho de "gerado em" (a data muda a cada build).
+ * @param {string} gameDir pasta do jogo (ex.: 'parentes'), também usada no nome do build-*.mjs do cabeçalho.
+ * @param {string} varName variável global que o game.js do jogo lê (ex.: 'PARENTES_DATA').
+ */
 export async function writeDataJs(gameDir, varName, data) {
   const file = join(ROOT_DIR, gameDir, 'data.js');
   const header = `// Gerado por tools/build-${gameDir}.mjs em ${new Date().toISOString().slice(0, 10)} — não editar à mão.\n`;

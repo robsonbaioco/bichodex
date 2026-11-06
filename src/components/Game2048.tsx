@@ -1,3 +1,8 @@
+// Bicho 2048: a tela do jogo (regras em game2048.ts). Aberto pela aba Jogos (Games.tsx).
+// Cada valor de bloco ganha a foto de um animal da região, vinda de fetchDailyCandidates (iNaturalist),
+// em marca-d'água. Lê teclado (setas/WASD), deslize na tela e os botões; guarda o recorde em
+// localStorage ('bichodex:game2048'). A partida em si não é salva: sair da tela perde o jogo.
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchDailyCandidates, type Place, type Taxon } from '../api'
 import { displayName } from '../format'
@@ -5,11 +10,13 @@ import { SITE_URL } from '../shareCard'
 import { applyMove, newGame, SIZE, GOAL, type Direction, type Mode, type GameState } from '../game2048'
 import { load, save } from '../storage'
 
+/** Recorde salvo: maior pontuação e maior bloco (podem ser de partidas diferentes). */
 interface Best {
   score: number
   maxTile: number
 }
 
+/** Tecla → direção (setas e WASD, em minúscula e maiúscula). */
 const DIRS: Record<string, Direction> = {
   ArrowUp: 'up',
   ArrowDown: 'down',
@@ -40,23 +47,30 @@ const TILE_COLORS: Record<number, string> = {
   2048: '#edc22e',
 }
 
+/** Cor de fundo do bloco; acima de 2048 todos ficam no mesmo tom escuro. */
 function tileColor(value: number): string {
   return TILE_COLORS[value] ?? '#3c3a32'
 }
 
+/** Tela do Bicho 2048: escolha do modo, tabuleiro, placar, fim de jogo e compartilhamento. */
 export function Game2048({ place, radius }: { place: Place; radius: number }) {
+  /** Modo escolhido; null mostra a tela de escolha. */
   const [mode, setMode] = useState<Mode | null>(null)
   const [game, setGame] = useState<GameState | null>(null)
   const [animals, setAnimals] = useState<Taxon[]>([])
   const [best, setBest] = useState<Best>(() => load('game2048', { score: 0, maxTile: 0 }))
   /** Animal (foto + nome) fixo para cada valor de bloco: blocos com o mesmo número mostram o mesmo animal. */
   const byValue = useRef(new Map<number, { url: string; name: string }>())
+  /** Falso enquanto as fotos são pré-carregadas: os botões de começar ficam desligados. */
   const [photosReady, setPhotosReady] = useState(true)
+  /** O resultado foi copiado (quando não há navigator.share). */
   const [copied, setCopied] = useState(false)
   const board = useRef<HTMLDivElement>(null)
+  /** Ponto onde o dedo encostou, para medir o deslize. */
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
-  // O jogo só aceita animais do raio que o usuário já tinha selecionado no app.
+  // O jogo só aceita animais do raio que o usuário já tinha selecionado no app
+  // (os mesmos candidatos do bicho do dia: animais com foto e nome popular).
   useEffect(() => {
     const controller = new AbortController()
     fetchDailyCandidates(place, radius, controller.signal)
@@ -65,6 +79,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
     return () => controller.abort()
   }, [place, radius])
 
+  // grava o recorde sempre que ele muda
   useEffect(() => save('game2048', best), [best])
 
   // Sorteia um animal para cada valor de bloco e pré-carrega as fotos,
@@ -81,12 +96,14 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
       return
     }
     const urls = new Set<string>()
+    // 2 → 1º animal, 4 → 2º, ... 2048 → 11º; com menos de 11 animais, a lista dá a volta
     for (let value = 2; value <= GOAL; value *= 2) {
       const pick = pool[(Math.log2(value) - 1) % pool.length]
       map.set(value, pick)
       urls.add(pick.url)
     }
     byValue.current = map
+    // libera o jogo quando todas as fotos terminarem, com sucesso ou erro (foto quebrada não trava o jogo)
     let pending = urls.size
     setPhotosReady(false)
     const done = () => {
@@ -101,6 +118,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
     }
   }, [animals])
 
+  /** Animal (foto e nome) do bloco com esse valor; undefined se não há fotos (o bloco fica só com o número). */
   function animalFor(value: number): { url: string; name: string } | undefined {
     const known = byValue.current.get(value)
     if (known) return known
@@ -110,16 +128,23 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
     return all[(Math.log2(value) - 1) % all.length]
   }
 
+  /** Começa uma partida nova no modo dado (também serve de "Novo jogo" e "Jogar de novo"). */
   const start = useCallback((m: Mode) => {
     setMode(m)
     setGame(newGame(m))
     setCopied(false)
   }, [])
 
+  /**
+   * Faz uma jogada e atualiza o recorde. Usa a forma funcional do setGame para partir sempre do estado
+   * mais novo (dois toques rápidos não se perdem). O setBest dentro do updater é idempotente, então não
+   * faz mal se o React rodar o updater duas vezes (StrictMode).
+   */
   const move = useCallback(
     (dir: Direction) => {
       setGame((current) => {
         if (!current || current.over) return current
+        // venceu no normal: o tabuleiro trava até a pessoa escolher continuar no infinito ou recomeçar
         if (current.won && current.mode === 'normal') return current
         const next = applyMove(current, dir)
         if (!next) return current
@@ -131,6 +156,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
     [],
   )
 
+  // teclado só com uma partida na tela; preventDefault impede as setas de rolarem a página
   useEffect(() => {
     if (!game) return
     const onKey = (e: KeyboardEvent) => {
@@ -143,10 +169,12 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [game, move])
 
+  /** Guarda onde o dedo encostou (só com um dedo). */
   function onTouchStart(e: React.TouchEvent) {
     if (e.touches.length === 1) touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
   }
 
+  /** Ao soltar o dedo: deslize de 24 px ou mais vira jogada, no eixo em que andou mais. */
   function onTouchEnd(e: React.TouchEvent) {
     const startPoint = touchStart.current
     touchStart.current = null
@@ -158,6 +186,7 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
   }
 
   const maxTile = useMemo(() => (game ? Math.max(0, ...game.tiles.map((t) => t.value)) : 0), [game])
+  // as 16 casas de fundo; os blocos são desenhados por cima, com posição absoluta
   const cells = useMemo(() => Array.from({ length: SIZE * SIZE }, (_, i) => i), [])
 
   if (!mode || !game) {
@@ -189,8 +218,10 @@ export function Game2048({ place, radius }: { place: Place; radius: number }) {
     )
   }
 
+  // mostra o painel de fim: travou, ou venceu no normal (o "Continuar no infinito" só troca o modo)
   const finished = game.over || (game.won && game.mode === 'normal')
 
+  /** Compartilha o resultado com link direto para o jogo (#/jogos/2048); sem Web Share, copia o texto. */
   async function share() {
     if (!game) return
     const points = game.score.toLocaleString('pt-BR')

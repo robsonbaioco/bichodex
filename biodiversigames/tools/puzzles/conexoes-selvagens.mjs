@@ -4,6 +4,20 @@
 // Regra de ouro: pode haver distrações (um item que "parece" caber em dois grupos),
 // mas a divisão completa em 4 grupos precisa ter UMA única solução.
 // Formato dos itens: [nome exibido, nome científico usado para foto e checagem]
+//
+// Cada puzzle é { groups: [4 grupos] } e cada grupo tem:
+// - level: 0, 1, 2 ou 3, cada nível usado uma vez por puzzle (define a cor e a dificuldade).
+// - label: o nome do grupo, revelado quando o jogador acerta.
+// - check (opcional): [nível taxonômico do GBIF, nome], ex.: ['family', 'Felidae'] ou ['class', 'Aves'].
+//   Níveis válidos: 'kingdom', 'phylum', 'class', 'order', 'family', 'genus'. Use só em grupos
+//   taxonômicos; grupos por característica ("mudam de cor") ficam sem check.
+// - items: exatamente 4 pares [nome exibido, nome científico]; os 16 nomes exibidos do puzzle
+//   precisam ser diferentes entre si.
+// O build confere tudo isso e não grava o data.js se algo falhar. Ele NÃO confere a solução única.
+//
+// Como acrescentar com segurança: acrescente puzzles no fim, em lotes (mudar a quantidade reembaralha a
+// ordem dos desafios dos próximos dias; ver dailyIndex() em shared/common.js), e rode
+// `node tools/build-conexoes-selvagens.mjs` de dentro de biodiversigames/.
 
 export default [
   {

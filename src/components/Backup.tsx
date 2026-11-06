@@ -1,3 +1,6 @@
+// Exportar e importar os dados do app em arquivo JSON. Usa exportBackup/parseBackup/restoreBackup de
+// storage.ts, que leem e gravam todas as chaves `bichodex:` do localStorage. Aparece na tela de
+// boas-vindas (só importar) e na aba Minha dex (exportar e importar).
 import { useRef, useState } from 'react'
 import { formatNumber } from '../format'
 import { exportBackup, parseBackup, restoreBackup, type BackupData } from '../storage'
@@ -9,10 +12,13 @@ interface Props {
 
 /** Cópia dos dados em arquivo, para trocar de navegador ou de aparelho sem perder a dex. */
 export function Backup({ importOnly = false }: Props) {
+  /** Seletor de arquivo escondido, acionado pelos botões de importar. */
   const input = useRef<HTMLInputElement>(null)
+  /** Cópia já lida e válida, esperando a confirmação para substituir os dados atuais. */
   const [pending, setPending] = useState<BackupData | null>(null)
   const [error, setError] = useState('')
 
+  /** Baixa a cópia como `bichodex-AAAA-MM-DD.json`, por um link temporário. */
   function download() {
     const backup = exportBackup()
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
@@ -23,18 +29,22 @@ export function Backup({ importOnly = false }: Props) {
     document.body.append(link)
     link.click()
     link.remove()
+    // libera o endereço do blob depois de o navegador começar o download
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
+  /** Lê o arquivo escolhido e, se for uma cópia válida, pede confirmação (nada é gravado ainda). */
   async function pick(file: File | undefined) {
     if (!file) return
     setError('')
     const backup = parseBackup(await file.text())
     if (backup) setPending(backup)
     else setError('Este arquivo não é uma cópia de dados do Bichodex.')
+    // limpa o seletor para escolher o mesmo arquivo de novo disparar o onChange
     if (input.current) input.current.value = ''
   }
 
+  /** Grava a cópia pendente no localStorage (apagando os dados atuais) e recarrega o app. */
   function confirm() {
     if (!pending) return
     try {
@@ -48,6 +58,7 @@ export function Backup({ importOnly = false }: Props) {
     location.reload()
   }
 
+  // a cópia vem de um arquivo qualquer: só confia em `seen` se for mesmo uma lista
   const seenCount = Array.isArray(pending?.data.seen) ? pending.data.seen.length : 0
 
   return (

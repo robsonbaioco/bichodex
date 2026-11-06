@@ -1,3 +1,7 @@
+// Cartão de uma espécie nas grades (lista regional e busca no App.tsx, coleção em Dex.tsx): foto, número,
+// selo de risco, nome e contagem de registros, mais o botão ✓ de avistado. Não busca nem guarda nada:
+// tudo vem por props, e marcar/abrir são callbacks do pai.
+
 import type { CSSProperties } from 'react'
 import type { Taxon } from '../api'
 import { categoryOf } from '../categories'
@@ -9,10 +13,12 @@ interface Props {
   /** Posição no ranking regional; ausente para espécies de fora da região. */
   number?: number
   seen: boolean
+  /** Chamado ao tocar no cartão; o link já leva para #/especie/<id>, que abre a ficha. */
   onOpen: () => void
   onToggleSeen: () => void
 }
 
+/** Cartão clicável da espécie; a cor da categoria vai na variável CSS `--c`. */
 export function SpeciesCard({ entry, number, seen, onOpen, onToggleSeen }: Props) {
   const { taxon, count } = entry
   const category = categoryOf(taxon)

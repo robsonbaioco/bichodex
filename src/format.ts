@@ -1,9 +1,14 @@
+// Formatação e rótulos de exibição usados no app todo: números, nomes de espécies, grau de ameaça (IUCN),
+// faixas de raridade, trechos de texto e datas do avistamento. Funções puras, sem rede nem armazenamento.
 import type { Taxon } from './api'
 
+/** Número com separador de milhar brasileiro (1.234). */
 export const formatNumber = (n: number) => n.toLocaleString('pt-BR')
 
+/** Número da espécie no estilo pokédex ("Nº 007"). */
 export const entryNumber = (n: number) => `Nº ${String(n).padStart(3, '0')}`
 
+/** Nome popular em pt-BR (ou o científico, se não houver), com a inicial maiúscula. */
 export function displayName(taxon: Taxon): string {
   const name = taxon.preferred_common_name || taxon.name
   return name.charAt(0).toUpperCase() + name.slice(1)
@@ -39,6 +44,7 @@ export function riskLabel(taxon: Taxon): string | null {
   return status && status !== 'LC' && status !== 'DD' ? (CONSERVATION[status] ?? null) : null
 }
 
+/** Faixa de raridade, definida pela quantidade de registros da espécie na área consultada. */
 export interface Rarity {
   id: string
   label: string
@@ -55,10 +61,12 @@ export const RARITIES: Rarity[] = [
   { id: 'rare', label: 'Raro', min: 0, max: 4 },
 ]
 
+/** Rótulo da faixa de raridade em que uma quantidade de registros cai (depende de RARITIES estar da mais comum para a mais rara). */
 export function frequencyLabel(count: number): string {
   return (RARITIES.find((rarity) => count >= rarity.min) ?? RARITIES[RARITIES.length - 1]).label
 }
 
+/** Texto puro de um trecho HTML (ex.: resumo da Wikipédia), sem executar nada: o DOMParser não roda scripts. */
 export function htmlToText(html: string): string {
   return new DOMParser().parseFromString(html, 'text/html').body.textContent ?? ''
 }
@@ -68,6 +76,7 @@ export function excerpt(text: string, max = 190): string {
   const clean = text.replace(/\s+/g, ' ').trim()
   if (clean.length <= max) return clean
   const cut = clean.slice(0, max)
+  // corta no fim de uma frase se ela ocupar mais da metade do limite; senão, na última palavra inteira, com reticências
   const sentenceEnd = cut.lastIndexOf('. ')
   return sentenceEnd > max * 0.5 ? cut.slice(0, sentenceEnd + 1) : `${cut.slice(0, cut.lastIndexOf(' '))}…`
 }
@@ -81,7 +90,7 @@ export function localDateTime(date: Date): string {
   return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}T${p(date.getHours())}:${p(date.getMinutes())}`
 }
 
-/** "12/10/2026 às 14:30", a partir do valor de localDateTime. */
+/** "12/10/2026 às 14:30", a partir do valor de localDateTime; só a data, se o valor não tiver hora. */
 export function formatSeenAt(value: string): string {
   const [day, time] = value.split('T')
   const [y, m, d] = day.split('-')

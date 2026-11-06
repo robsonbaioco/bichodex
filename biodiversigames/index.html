@@ -64,12 +64,16 @@
     <a href="https://pt.wikipedia.org" target="_blank" rel="noopener">Wikipédia</a>
   </footer>
 
+  <!-- Catálogo: monta os cartões dos jogos e mostra se o desafio de hoje já foi jogado e a sequência.
+       Lê direto o localStorage que cada jogo grava (mesma origem), por isso `key` tem de bater com o GAME do game.js.
+       Usado só no zip do itch.io e ao abrir a pasta localmente; o Bichodex tem a própria lista (src/components/Games.tsx). -->
   <script src="shared/common.js"></script>
   <script>
     (function () {
       const { el } = BG;
       const today = BG.todayNumber();
 
+      // dir = pasta do jogo; key = prefixo das chaves dele no localStorage (Conexões usa "conexoes").
       const GAMES = [
         {
           dir: 'parentes', key: 'parentes', emoji: '🌳', name: 'Parentes',
@@ -87,14 +91,17 @@
           tags: ['estilo Worldle', 'geografia', 'GBIF'],
         },
       ];
+      // Ideias ainda não feitas (ver brainstorm-jogos.md): cartões apagados, sem link.
       const SOON = [
         { emoji: '🐾', name: 'Bichodle', text: 'Adivinhe o bicho do dia: cada palpite compara classe, ordem, família, bioma, tamanho e risco de extinção.', tags: ['estilo Wordle'] },
         { emoji: '🎵', name: 'Canto do Dia', text: 'Ouça um trecho do canto e descubra a ave. O áudio fica mais longo a cada erro.', tags: ['estilo Heardle', 'xeno-canto'] },
       ];
 
+      /** Situação do jogo hoje ("feito", "jogado" ou "Jogar ▸") e a sequência, lidas do localStorage do jogo. */
       function status(g) {
         const day = BG.load(`${g.key}:day:${today}`, null);
         const stats = BG.load(`${g.key}:stats`, null);
+        // Mesma regra do getStats: a sequência só vale se o último dia vencido foi hoje ou ontem.
         const streak = stats && stats.last >= today - 1 ? stats.streak : 0;
         return el('div', { class: 'status' },
           day && day.done
@@ -104,6 +111,7 @@
         );
       }
 
+      /** Cartão de um jogo: link com `?catalogo=1` (faz o jogo mostrar "← Jogos") ou, se `soon`, um cartão sem link. */
       function card(g, soon) {
         const body = [
           el('div', { class: 'emoji', 'aria-hidden': 'true', text: g.emoji }),

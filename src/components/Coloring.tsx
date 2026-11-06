@@ -1,3 +1,9 @@
+// Página de colorir de uma espécie, aberta pelo App.tsx (pela ficha ou pela aba Jogos). Busca as fotos com
+// licença reutilizável via fetchTaxon (iNaturalist), baixa a escolhida com loadImage (shareCard.ts) e a transforma
+// em contorno com makeLineArt (lineArt.ts). A pintura fica só na memória: nada vai para o localStorage.
+// Dois canvas empilhados: embaixo a pintura (onde o pincel e o balde mexem), em cima os traços, que o CSS
+// mistura com mix-blend-mode: multiply e deixa sem pointer-events, para os toques chegarem ao de baixo.
+
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { fetchTaxon, type Photo, type Taxon } from '../api'
@@ -5,19 +11,23 @@ import { displayName } from '../format'
 import { DETAIL_LEVELS, floodFill, makeLineArt, type Detail, type LineArt } from '../lineArt'
 import { loadImage } from '../shareCard'
 
+/** Ferramenta ativa: balde de tinta, pincel ou borracha (que é um pincel branco). */
 type Tool = 'fill' | 'brush' | 'eraser'
 
+/** Paleta fixa de cores; o seletor 🎨 permite qualquer outra. */
 const COLORS = [
   '#e63946', '#f4a261', '#f9c74f', '#90be6d', '#2a9d8f', '#4cc9f0',
   '#277da1', '#7b2cbf', '#f28482', '#8d5524', '#6c757d', '#1b1b1b',
 ]
 
+/** Espessuras do pincel; `id` é a largura do traço em pixels do desenho (não da tela). */
 const BRUSHES = [
   { id: 6, label: 'Fino' },
   { id: 14, label: 'Médio' },
   { id: 28, label: 'Grosso' },
 ]
 
+/** Quantos passos o "Desfazer" guarda (cada um é uma cópia inteira da pintura, por isso o limite). */
 const MAX_UNDO = 20
 
 /** Só fotos com licença que permite obra derivada (o desenho é uma obra derivada da foto). */
@@ -25,14 +35,17 @@ function isReusable(photo: Photo | null | undefined): photo is Photo {
   return !!(photo?.medium_url ?? photo?.square_url) && !!photo?.license_code && !photo.license_code.includes('nd')
 }
 
+/** URL da versão grande da foto: o iNaturalist só muda o tamanho no nome do arquivo (square/medium/large). */
 const largeUrl = (photo: Photo) => (photo.medium_url ?? photo.square_url)!.replace(/\/(medium|square)\./, '/large.')
 
+/** "#rrggbb" → [r, g, b] (0–255), formato que o floodFill espera. */
 const hexToRgb = (hex: string): [number, number, number] => [
   parseInt(hex.slice(1, 3), 16),
   parseInt(hex.slice(3, 5), 16),
   parseInt(hex.slice(5, 7), 16),
 ]
 
+/** Nome em minúsculas, sem acentos e com hífens, para o nome do arquivo baixado. */
 const slug = (text: string) =>
   text
     .normalize('NFD')
@@ -41,6 +54,7 @@ const slug = (text: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
 
+/** Baixa uma URL (data: ou blob:) com o nome dado, criando e clicando num link temporário. */
 function download(url: string, name: string) {
   const link = document.createElement('a')
   link.href = url
@@ -70,13 +84,17 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
 
   const paintRef = useRef<HTMLCanvasElement>(null)
   const lineRef = useRef<HTMLCanvasElement>(null)
+  /** Pilha do "Desfazer": cópias da pintura antes de cada ação. */
   const history = useRef<ImageData[]>([])
+  /** Último ponto do traço em andamento; null quando o dedo/mouse não está pressionado. */
   const drawing = useRef<{ x: number; y: number } | null>(null)
+  /** Foto já baixada, para refazer o contorno ao mudar o nível de detalhe sem baixar de novo. */
   const photoRef = useRef<HTMLImageElement | null>(null)
 
   const name = displayName(taxon)
   const photo = photos?.[photoIndex] ?? null
 
+  // Esc fecha só esta tela: escuta na captura e para o evento antes que a ficha da espécie (por baixo) o receba.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
@@ -87,6 +105,7 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     return () => document.removeEventListener('keydown', onKey, true)
   }, [onClose])
 
+  // Lista as fotos reutilizáveis da espécie; se a consulta falhar, tenta a de capa que já veio com o táxon.
   useEffect(() => {
     const controller = new AbortController()
     fetchTaxon(taxon.id, controller.signal)
@@ -118,11 +137,13 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     // eslint-disable-next-line react-hooks/exhaustive-deps -- o detalhe é tratado no efeito abaixo
   }, [photo])
 
+  // Mudou o nível de detalhe: refaz o contorno com a foto que já está na memória.
   useEffect(() => {
     if (photoRef.current) setArt(makeLineArt(photoRef.current, detail))
   }, [detail])
 
-  // Desenho novo: limpa a pintura e desenha os traços.
+  // Desenho novo: ajusta os dois canvas ao tamanho do contorno, limpa a pintura, desenha os traços, zera o
+  // "Desfazer" e guarda o PNG dos traços (usado na impressão e no download em preto e branco).
   useEffect(() => {
     if (!art || !paintRef.current || !lineRef.current) return
     for (const canvas of [paintRef.current, lineRef.current]) {
@@ -138,6 +159,7 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     setArtUrl(lineRef.current.toDataURL('image/png'))
   }, [art])
 
+  /** Empilha uma cópia da pintura atual no "Desfazer" (descartando a mais antiga além de MAX_UNDO). */
   const remember = useCallback(() => {
     const canvas = paintRef.current
     if (!canvas) return
@@ -146,12 +168,14 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     setUndoCount(history.current.length)
   }, [])
 
+  /** Volta a pintura para o último estado guardado. */
   function undo() {
     const last = history.current.pop()
     if (last) paintRef.current?.getContext('2d')!.putImageData(last, 0, 0)
     setUndoCount(history.current.length)
   }
 
+  /** Pinta tudo de branco de novo (dá para desfazer). Os traços ficam, pois estão no outro canvas. */
   function clearPaint() {
     const canvas = paintRef.current
     if (!canvas) return
@@ -161,6 +185,7 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     ctx.fillRect(0, 0, canvas.width, canvas.height)
   }
 
+  /** Converte a posição do ponteiro na tela para pixels do canvas, que é exibido em outro tamanho pelo CSS. */
   function point(event: ReactPointerEvent<HTMLCanvasElement>) {
     const rect = event.currentTarget.getBoundingClientRect()
     return {
@@ -169,6 +194,7 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     }
   }
 
+  /** Risca um segmento na pintura com a cor e a espessura atuais (branco, se for a borracha). */
   function stroke(from: { x: number; y: number }, to: { x: number; y: number }) {
     const ctx = paintRef.current!.getContext('2d')!
     ctx.strokeStyle = tool === 'eraser' ? '#fff' : color
@@ -181,10 +207,15 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     ctx.stroke()
   }
 
+  /**
+   * Toque na pintura. Com o balde, preenche na hora (e só guarda no "Desfazer" se algo mudou); com pincel ou
+   * borracha, começa um traço e captura o ponteiro para seguir recebendo os movimentos fora do canvas.
+   */
   function onPointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!art || !paintRef.current) return
     const at = point(event)
     if (tool === 'fill') {
+      // o balde trabalha numa cópia; `before` intacto vira o passo do "Desfazer"
       const ctx = paintRef.current.getContext('2d', { willReadFrequently: true })!
       const before = ctx.getImageData(0, 0, art.width, art.height)
       const after = new ImageData(new Uint8ClampedArray(before.data), art.width, art.height)
@@ -202,6 +233,7 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     stroke(at, at)
   }
 
+  /** Continua o traço em andamento até a posição atual. */
   function onPointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!drawing.current) return
     const at = point(event)
@@ -209,10 +241,12 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     drawing.current = at
   }
 
+  /** Encerra o traço (também ao cancelar o ponteiro). */
   const onPointerUp = () => {
     drawing.current = null
   }
 
+  /** Junta pintura e traços num canvas novo (traços em "multiply", como na tela) e baixa como PNG. */
   function savePainting() {
     const paint = paintRef.current
     const lines = lineRef.current
@@ -227,11 +261,14 @@ export function Coloring({ taxon, onClose }: { taxon: Taxon; onClose: () => void
     download(out.toDataURL('image/png'), `bichodex-pintura-${slug(name) || taxon.id}.png`)
   }
 
+  /** Liga o modo de impressão; o efeito abaixo monta a folha e chama window.print(). */
   function print() {
     setPrinting(true)
   }
 
   // A folha de impressão só existe enquanto imprime; o CSS de impressão esconde o resto da página.
+  // A classe `printing` no body ativa esse CSS; o atraso de 50 ms dá tempo do portal com a folha ser montado,
+  // e o evento afterprint desliga tudo quando a janela de impressão fecha.
   useEffect(() => {
     if (!printing) return
     document.body.classList.add('printing')

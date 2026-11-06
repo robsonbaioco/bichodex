@@ -1,16 +1,33 @@
 // Datas comemorativas de animais. Cada data aponta para um táxon do iNaturalist (espécie ou grupo).
+//
+// Papel: só conteúdo e o tipo SpecialDay (também usado por associatedDays.ts, App.tsx e Highlights.tsx).
+// Quem decide se uma data cai hoje é specialDaysOn() em src/highlights.ts (dia fixo, regra móvel ou Páscoa).
+// O destaque da home mostra o nome e o resumo do táxon, conta quantas espécies do táxon há na região e
+// oferece abrir a ficha ou filtrar o Explorar pelo grupo.
+//
+// Para acrescentar uma data de animal, inclua um objeto em SPECIAL_DAYS:
+// - name, group, emoji e taxonId são obrigatórios. O taxonId é o número do táxon no iNaturalist
+//   (o que aparece em inaturalist.org/taxa/<id>); pode ser espécie, gênero, família etc.
+// - Data fixa: month (1–12) + day. Data móvel: month + weekday (use as constantes abaixo) + nth
+//   (1 = primeira, 2 = segunda..., -1 = última). Data da Páscoa: easter: true, sem month/day.
+// - Não preencha day junto com weekday/nth: se houver day, a regra móvel é ignorada.
+// - A ordem da lista é a ordem em que as datas do mesmo dia aparecem no destaque.
 
+/** Uma data comemorativa ligada a um táxon do iNaturalist. */
 export interface SpecialDay {
   /** Nome da data, como aparece no destaque (ex.: "Dia Mundial do Leão"). */
   name: string
   /** Como o grupo é chamado em uma frase ou filtro (ex.: "Leões"). */
   group: string
+  /** Emoji mostrado no destaque e no chip de filtro do Explorar. */
   emoji: string
+  /** ID do táxon no iNaturalist (espécie ou grupo) usado na ficha, na contagem da região e no filtro. */
   taxonId: number
   /** Para datas que não são sobre o animal: por que ele foi associado a ela. */
   reason?: string
   /** Data que acompanha a Páscoa, no lugar de mês e dia. */
   easter?: boolean
+  /** Mês de 1 (janeiro) a 12. */
   month?: number
   /** Dia fixo do mês... */
   day?: number
@@ -19,6 +36,7 @@ export interface SpecialDay {
   nth?: number
 }
 
+// Dias da semana como em Date.getDay(), para as regras móveis (acrescente outros se precisar).
 const SUNDAY = 0
 const WEDNESDAY = 3
 const FRIDAY = 5
@@ -26,6 +44,7 @@ const SATURDAY = 6
 
 // Datas conferidas em outubro de 2026 nos sites das entidades organizadoras ou em duas fontes independentes.
 // Mais de uma data pode cair no mesmo dia; todas aparecem no destaque.
+/** Datas comemorativas sobre animais; aparecem antes das ASSOCIATED_DAYS no destaque do dia. */
 export const SPECIAL_DAYS: SpecialDay[] = [
   { name: 'Dia Internacional da Zebra', group: 'Zebras', emoji: '🦓', taxonId: 43335, month: 1, day: 31 },
   { name: 'Dia Mundial do Hipopótamo', group: 'Hipopótamos', emoji: '🦛', taxonId: 42149, month: 2, day: 15 },

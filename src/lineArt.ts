@@ -1,6 +1,9 @@
 // Transforma a foto de uma espécie num desenho de contorno (preto e branco) para colorir ou imprimir.
 // Tudo roda no aparelho: borra um pouco a foto, acha as bordas (Sobel) e fica só com as mais fortes.
+// Usado só pelo Coloring.tsx (makeLineArt, floodFill, DETAIL_LEVELS). Sem rede nem armazenamento; a foto precisa
+// ter vindo com CORS (loadImage do shareCard.ts), senão o getImageData do canvas falha.
 
+/** Resultado do makeLineArt: o desenho e a máscara dos traços, no mesmo tamanho (até MAX_SIDE de lado). */
 export interface LineArt {
   width: number
   height: number
@@ -10,18 +13,28 @@ export interface LineArt {
   mask: Uint8Array
 }
 
-/** Quanto do desenho vira traço, do mais limpo ao mais detalhado. */
+/**
+ * Quanto do desenho vira traço, do mais limpo ao mais detalhado. `share` é a fração dos pixels com borda mais
+ * forte que passa no limiar (antes de tirar os pedacinhos soltos e engrossar o traço).
+ */
 export const DETAIL_LEVELS = [
   { id: 1, label: 'Simples', share: 0.05 },
   { id: 2, label: 'Médio', share: 0.08 },
   { id: 3, label: 'Detalhado', share: 0.12 },
 ] as const
 
+/** Nível de detalhe: 1, 2 ou 3 (ids de DETAIL_LEVELS). */
 export type Detail = (typeof DETAIL_LEVELS)[number]['id']
 
+/** Maior lado do desenho, em pixels: limita memória e tempo de processamento (e o tamanho do "Desfazer"). */
 const MAX_SIDE = 900
+/** Tom de cinza do traço (0 = preto); quase preto, para não pesar na impressão. */
 const INK = 34
 
+/**
+ * Borrão de caixa separável (horizontal e depois vertical) de raio `r` sobre uma imagem em tons de cinza.
+ * Usa soma deslizante, então o custo não depende do raio; nas bordas repete o pixel da extremidade.
+ */
 function boxBlur(src: Float32Array, w: number, h: number, r: number): Float32Array {
   const tmp = new Float32Array(w * h)
   const out = new Float32Array(w * h)
@@ -45,6 +58,11 @@ function boxBlur(src: Float32Array, w: number, h: number, r: number): Float32Arr
   return out
 }
 
+/**
+ * Gera o desenho de contorno a partir da foto: reduz a no máximo MAX_SIDE, passa para cinza, borra, calcula a
+ * força das bordas (Sobel), corta pelo percentil do nível de detalhe, descarta traços pequenos e engrossa o
+ * resto. Síncrono e pesado: roda na thread principal e pode travar a tela por um instante.
+ */
 export function makeLineArt(photo: CanvasImageSource & { width: number; height: number }, detail: Detail): LineArt {
   const scale = Math.min(1, MAX_SIDE / Math.max(photo.width, photo.height))
   const w = Math.max(1, Math.round(photo.width * scale))
@@ -56,11 +74,14 @@ export function makeLineArt(photo: CanvasImageSource & { width: number; height: 
   ctx.drawImage(photo, 0, 0, w, h)
   const rgba = ctx.getImageData(0, 0, w, h).data
 
+  // luminância (pesos do padrão BT.601): o desenho só olha para claro/escuro, não para a cor
   const luma = new Float32Array(w * h)
   for (let i = 0; i < w * h; i++) luma[i] = 0.299 * rgba[i * 4] + 0.587 * rgba[i * 4 + 1] + 0.114 * rgba[i * 4 + 2]
-  // dois borrões de caixa ≈ um gaussiano: tira a textura fina (pelos, grama) e deixa os contornos
+  // três borrões de caixa seguidos ≈ um gaussiano: tira a textura fina (pelos, grama) e deixa os contornos
   const gray = boxBlur(boxBlur(boxBlur(luma, w, h, 3), w, h, 3), w, h, 2)
 
+  // operador de Sobel: gx e gy são as variações horizontal e vertical do brilho; a magnitude é a força da borda
+  // (a moldura de 1 pixel fica com zero)
   const magnitude = new Float32Array(w * h)
   let max = 0
   for (let y = 1; y < h - 1; y++) {
@@ -81,6 +102,7 @@ export function makeLineArt(photo: CanvasImageSource & { width: number; height: 
   const histogram = new Uint32Array(BINS)
   for (let i = 0; i < w * h; i++) histogram[Math.min(BINS - 1, Math.floor((magnitude[i] / (max || 1)) * BINS))]++
   const share = DETAIL_LEVELS.find((level) => level.id === detail)!.share
+  // desce das faixas mais fortes do histograma para as mais fracas até juntar `share` dos pixels; o limiar é o início dessa faixa
   let keep = w * h * share
   let bin = BINS - 1
   while (bin > 0 && keep > 0) keep -= histogram[bin--]
@@ -90,6 +112,7 @@ export function makeLineArt(photo: CanvasImageSource & { width: number; height: 
   for (let i = 0; i < w * h; i++) edge[i] = magnitude[i] >= threshold && magnitude[i] > 0 ? 1 : 0
 
   // tira os pedacinhos soltos (textura de pele, folhas, pedra): só ficam os traços ligados com tamanho razoável
+  // (componentes conexos com vizinhança de 8, por busca em profundidade com pilha; mínimo de pixels ∝ tamanho da foto)
   const minSize = Math.round((w + h) * 0.06)
   const label = new Int32Array(w * h)
   const keepEdge = new Uint8Array(w * h)
@@ -122,7 +145,7 @@ export function makeLineArt(photo: CanvasImageSource & { width: number; height: 
     if (members.length >= minSize) for (const i of members) keepEdge[i] = 1
   }
 
-  // engrossa o traço um pouco, para dar para pintar sem vazar
+  // engrossa o traço um pouco (1 pixel em cruz para cada lado), para dar para pintar sem vazar
   const mask = new Uint8Array(w * h)
   for (let i = 0; i < w * h; i++) {
     if (!keepEdge[i]) continue
@@ -143,7 +166,11 @@ export function makeLineArt(photo: CanvasImageSource & { width: number; height: 
   return { width: w, height: h, image, mask }
 }
 
-/** Balde de tinta: pinta a área da cor tocada, parando nos traços do desenho. */
+/**
+ * Balde de tinta: pinta a área da cor tocada, parando nos traços do desenho. Altera `paint` no lugar
+ * (vizinhança de 4, com pilha). Devolve false sem mexer em nada se o toque caiu fora, num traço ou numa área
+ * que já tem a cor escolhida; true se pintou.
+ */
 export function floodFill(paint: ImageData, mask: Uint8Array, startX: number, startY: number, rgb: [number, number, number]) {
   const { width: w, height: h, data } = paint
   const start = startY * w + startX

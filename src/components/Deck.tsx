@@ -1,3 +1,7 @@
+// Baralho de descobertas: mostra, uma por vez, as espécies da região ainda não avistadas para a pessoa dizer
+// se já viu ("Já vi" / "Ainda não", arrastando o cartão ou pelas setas do teclado). Aberto pelo App.tsx, que
+// passa a lista e marca o avistamento em `onSeen` (o App guarda no localStorage). Não chama API nem guarda nada.
+
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { SpeciesCount, Taxon } from '../api'
 import { categoryOf } from '../categories'
@@ -6,10 +10,12 @@ import { displayName, formatNumber, frequencyLabel } from '../format'
 interface Props {
   /** Espécies da região ainda não avistadas, na ordem em que serão mostradas. */
   items: SpeciesCount[]
+  /** Marca a espécie como avistada (na natureza). */
   onSeen: (taxon: Taxon) => void
   onClose: () => void
 }
 
+/** Distância horizontal, em pixels, que o cartão precisa ser arrastado para contar como resposta. */
 const SWIPE = 90
 
 /** Baralho de descobertas: uma espécie por vez; arrastar para a direita (ou tocar em "Já vi") marca como avistada. */
@@ -18,9 +24,13 @@ export function Deck({ items, onSeen, onClose }: Props) {
   const [queue] = useState(items)
   const [index, setIndex] = useState(0)
   const [marked, setMarked] = useState(0)
+  /** Deslocamento horizontal atual do cartão durante o arraste (positivo = direita = "Já vi"). */
   const [drag, setDrag] = useState(0)
+  /** clientX onde o arraste começou; null quando não há arraste. */
   const start = useRef<number | null>(null)
 
+  // Teclado: Esc fecha, → responde "Já vi", ← responde "Ainda não". Sem lista de dependências de propósito:
+  // reinscreve a cada render para o `answer` usar sempre a carta atual.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
@@ -33,6 +43,7 @@ export function Deck({ items, onSeen, onClose }: Props) {
 
   const entry = queue[index]
 
+  /** Responde a carta atual: se viu, marca e conta; em qualquer caso, volta o cartão ao centro e passa para a próxima. */
   function answer(sawIt: boolean) {
     if (!entry) return
     if (sawIt) {
@@ -43,15 +54,18 @@ export function Deck({ items, onSeen, onClose }: Props) {
     setIndex((i) => i + 1)
   }
 
+  /** Começa o arraste e captura o ponteiro, para continuar recebendo o movimento mesmo fora do cartão. */
   function onPointerDown(event: PointerEvent<HTMLElement>) {
     start.current = event.clientX
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
+  /** Acompanha o dedo/mouse enquanto arrasta. */
   function onPointerMove(event: PointerEvent) {
     if (start.current != null) setDrag(event.clientX - start.current)
   }
 
+  /** Solta o cartão: passou de SWIPE, responde pelo lado; senão volta ao centro. */
   function onPointerUp() {
     if (start.current == null) return
     start.current = null
@@ -86,6 +100,7 @@ export function Deck({ items, onSeen, onClose }: Props) {
         {entry && category ? (
           <>
             <div className="deck-stage">
+              {/* key por espécie: cada carta é um elemento novo, então não "volta" animada do lado onde a anterior saiu */}
               <article
                 key={entry.taxon.id}
                 className={`deck-card${drag > 30 ? ' is-yes' : drag < -30 ? ' is-no' : ''}`}

@@ -1,14 +1,22 @@
+// Camada de rede do app: todas as chamadas às APIs externas passam por aqui.
+// iNaturalist (espécies, contagens, registros, fichas), Open-Meteo (busca de cidades) e BigDataCloud
+// (nome do lugar a partir da posição). Usado pelo App, pelo LocationPicker e por vários componentes
+// (Highlights, MapView, SpeciesDetail, Dex, jogos). Não guarda nada: cache, se houver, fica com quem chama.
 import type { Category } from './categories'
 
+/** Base da API pública do iNaturalist (sem chave; tem limite de requisições por minuto). */
 const INAT = 'https://api.inaturalist.org/v1'
+/** Tamanho padrão da página da lista de espécies. */
 export const PER_PAGE = 48
 
+/** Lugar escolhido pela pessoa: coordenadas (já arredondadas pelo LocationPicker) e nome para exibir. */
 export interface Place {
   lat: number
   lng: number
   label: string
 }
 
+/** Foto de um táxon no iNaturalist, com crédito do autor. */
 export interface Photo {
   square_url?: string
   medium_url?: string
@@ -17,6 +25,7 @@ export interface Photo {
   license_code?: string | null
 }
 
+/** Táxon (espécie ou grupo) como o iNaturalist devolve, só com os campos que o app usa. */
 export interface Taxon {
   id: number
   name: string
@@ -29,23 +38,27 @@ export interface Taxon {
   conservation_status?: { status?: string; status_name?: string; authority?: string } | null
 }
 
+/** Táxon completo de `/taxa/{id}`, usado na ficha: resumo da Wikipédia, galeria e linhagem. */
 export interface TaxonDetail extends Taxon {
   wikipedia_summary?: string | null
   taxon_photos?: { photo: Photo }[]
   ancestors?: Taxon[]
 }
 
+/** Uma espécie da área e quantos registros (observações) ela tem ali. */
 export interface SpeciesCount {
   count: number
   taxon: Taxon
 }
 
+/** GET que devolve o JSON da resposta; lança erro em status HTTP fora de 2xx (e AbortError se cancelado). */
 async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { signal })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   return response.json() as Promise<T>
 }
 
+/** Parâmetros comuns das consultas por área: círculo de `radiusKm` em volta do lugar, só registros verificáveis, nomes em pt-BR. */
 function areaParams(place: Place, radiusKm: number, threatened = false): URLSearchParams {
   const params = new URLSearchParams({
     lat: String(place.lat),
@@ -59,6 +72,10 @@ function areaParams(place: Place, radiusKm: number, threatened = false): URLSear
   return params
 }
 
+/**
+ * Uma página da lista de espécies da área (`/observations/species_counts`), ordenada pela quantidade de registros.
+ * A categoria vira `iconic_taxa` ou `taxon_id`. Devolve o total de espécies e os itens da página.
+ */
 export async function fetchSpecies(
   opts: {
     place: Place
@@ -100,20 +117,27 @@ export async function fetchCategoryCounts(
   return Object.fromEntries(data.results.map((r) => [r.taxon.name, r.count]))
 }
 
+/** Ficha completa de uma espécie, com nomes em pt-BR; lança erro se o id não existir. */
 export async function fetchTaxon(id: number, signal?: AbortSignal): Promise<TaxonDetail> {
   const data = await getJson<{ results: TaxonDetail[] }>(`${INAT}/taxa/${id}?locale=pt-BR`, signal)
   if (!data.results[0]) throw new Error('Espécie não encontrada')
   return data.results[0]
 }
 
+/**
+ * Nome do lugar ("Cidade, Estado") a partir das coordenadas, pela BigDataCloud (sem chave, uso pelo cliente).
+ * Devolve nulo quando a API não reconhece o ponto. Não aceita cancelamento.
+ */
 export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
   const data = await getJson<{ locality?: string; city?: string; principalSubdivision?: string }>(
     `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=pt`,
   )
+  // o Set evita "São Paulo, São Paulo" quando cidade e estado têm o mesmo nome
   const parts = [data.locality || data.city, data.principalSubdivision].filter(Boolean)
   return parts.length ? [...new Set(parts)].join(', ') : null
 }
 
+/** Busca cidades pelo nome no geocoding do Open-Meteo (até 6 resultados, rótulo "Cidade, Estado, País"). */
 export async function searchPlaces(query: string, signal?: AbortSignal): Promise<Place[]> {
   const params = new URLSearchParams({ name: query, language: 'pt', count: '6' })
   const data = await getJson<{
@@ -126,7 +150,8 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
   }))
 }
 
-const ANIMAL_GROUPS = 'Mammalia,Aves,Reptilia,Amphibia,Actinopterygii,Insecta,Arachnida,Mollusca,Animalia'
+/** Grupos icônicos de animais, para o "bicho do dia" não sortear planta, fungo etc. */
+const ANIMAL_GROUPS ='Mammalia,Aves,Reptilia,Amphibia,Actinopterygii,Insecta,Arachnida,Mollusca,Animalia'
 
 /**
  * Animais da área que servem de "bicho do dia": com foto, nome popular e registros suficientes
@@ -138,6 +163,7 @@ export async function fetchDailyCandidates(place: Place, radiusKm: number, signa
   params.set('per_page', '200')
   const data = await getJson<{ results: SpeciesCount[] }>(`${INAT}/observations/species_counts?${params}`, signal)
   const presentable = data.results.filter((r) => r.taxon.default_photo && r.taxon.preferred_common_name)
+  // em áreas com poucos dados, melhor um bicho raro do que nenhum
   const findable = presentable.filter((r) => r.count >= 5)
   return (findable.length ? findable : presentable).map((r) => r.taxon)
 }
@@ -151,7 +177,7 @@ export async function countSpeciesInArea(
 ): Promise<number> {
   const params = areaParams(place, radiusKm)
   params.set('taxon_id', String(taxonId))
-  params.set('per_page', '0')
+  params.set('per_page', '0') // só o total interessa
   const data = await getJson<{ total_results: number }>(`${INAT}/observations/species_counts?${params}`, signal)
   return data.total_results
 }
@@ -198,6 +224,7 @@ export async function fetchRecentSightings(
   const data = await getJson<{
     results: { id: number; location?: string | null; taxon?: Taxon | null; observed_on?: string }[]
   }>(`${INAT}/observations?${params}`, signal)
+  // `location` vem como texto "lat,lng"; registros sem posição ou sem táxon ficam de fora
   return data.results.flatMap((r) => {
     const [lat, lng] = (r.location ?? '').split(',').map(Number)
     if (!r.taxon || !Number.isFinite(lat) || !Number.isFinite(lng)) return []

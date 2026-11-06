@@ -1,8 +1,13 @@
-// Temas visuais. As cores e formas de cada um ficam em styles.css, sob :root[data-theme='…'];
-// aqui estão só o que a interface e o cartão de conquista (canvas, sem acesso ao CSS) precisam saber.
+// Temas visuais. As cores e formas de cada um ficam no CSS, sob :root[data-theme='…']: os tokens
+// padrão (tema Original, claro e escuro) em styles.css; Élfico e Jogo em themes.css; os demais em
+// themes-ousados.css; ajustes de telas específicas e as regras da intensidade suave em views.css.
+// Aqui estão só o que a interface e o cartão de conquista (canvas, sem acesso ao CSS) precisam saber.
+// Quem aplica: main.tsx (antes do primeiro render, para não piscar) e o App.tsx (ao trocar no ThemePicker).
+// Guarda em localStorage: 'bichodex:theme', 'bichodex:intensity' e 'bichodex:textSize'.
 
 import { load, save } from './storage'
 
+/** Id do tema, igual ao valor de data-theme no CSS (o 'grafite' aparece como "Graffiti"). */
 export type ThemeId =
   | 'original'
   | 'grafite'
@@ -15,6 +20,7 @@ export type ThemeId =
   | 'carta'
   | 'parque'
 
+/** O que o JS sabe de um tema (o visual completo está no CSS). */
 export interface Theme {
   id: ThemeId
   label: string
@@ -27,11 +33,17 @@ export interface Theme {
   /** Fonte e peso dos títulos, também usados no cartão de conquista. */
   displayFont: string
   displayWeight: number
+  /** Cores do cartão de conquista (canvas): fundo, fundo escuro, texto, destaque e texto sobre o destaque. */
   card: { bg: string; deep: string; ink: string; accent: string; onAccent: string }
 }
 
-const SYSTEM_FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+/** Fonte do sistema, usada como reserva no fim de cada pilha de fontes. */
+const SYSTEM_FONT ="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
 
+/**
+ * Temas, na ordem do seletor; o primeiro (Original) é o padrão. As fontes de exibição são
+ * carregadas pelo @fontsource em main.tsx: um tema com fonte nova precisa do import lá.
+ */
 export const THEMES: Theme[] = [
   {
     id: 'original',
@@ -148,19 +160,22 @@ export const THEMES: Theme[] = [
 /** Suave troca só cores e fontes; forte liga também texturas, rotações e brilhos do tema. */
 export type Intensity = 'suave' | 'forte'
 
+/** Intensidade salva; qualquer valor que não seja 'suave' vira 'forte' (o padrão). */
 export function loadIntensity(): Intensity {
   return load<string>('intensity', 'forte') === 'suave' ? 'suave' : 'forte'
 }
 
+/** Tema pelo id; id desconhecido (ex.: tema removido) cai no Original. */
 export function themeById(id: string | undefined): Theme {
   return THEMES.find((theme) => theme.id === id) ?? THEMES[0]
 }
 
+/** Tema salvo no aparelho (ou o Original). */
 export function loadTheme(): ThemeId {
   return themeById(load<string>('theme', 'original')).id
 }
 
-/** Tema em uso no documento. */
+/** Tema em uso no documento (lido do data-theme do <html>); usado pelo cartão de conquista. */
 export function currentTheme(): Theme {
   return themeById(document.documentElement.dataset.theme)
 }
@@ -168,23 +183,30 @@ export function currentTheme(): Theme {
 /** Tamanho da letra do app inteiro: multiplica a fonte base (os tamanhos no CSS são em rem). */
 export type TextSize = 'normal' | 'grande' | 'enorme'
 
-export const TEXT_SIZES: { id: TextSize; label: string; scale: number }[] = [
+/** Opções do seletor de letra; `scale` vira a variável CSS --text-scale. */
+export const TEXT_SIZES:{ id: TextSize; label: string; scale: number }[] = [
   { id: 'normal', label: 'Normal', scale: 1 },
   { id: 'grande', label: 'Grande', scale: 1.15 },
   { id: 'enorme', label: 'Enorme', scale: 1.3 },
 ]
 
+/** Tamanho de letra salvo; valor desconhecido vira 'normal'. */
 export function loadTextSize(): TextSize {
   const stored = load<string>('textSize', 'normal')
   return TEXT_SIZES.find((size) => size.id === stored)?.id ?? 'normal'
 }
 
+/** Aplica o tamanho de letra (--text-scale no <html>, que multiplica a fonte base em styles.css) e salva. */
 export function applyTextSize(size: TextSize): void {
   const scale = TEXT_SIZES.find((item) => item.id === size)?.scale ?? 1
   document.documentElement.style.setProperty('--text-scale', String(scale))
   save('textSize', size)
 }
 
+/**
+ * Aplica o tema: põe data-theme e data-intensity no <html> (o CSS faz o resto), troca a cor da
+ * barra do navegador (meta theme-color) e salva tema e intensidade no localStorage.
+ */
 export function applyTheme(id: ThemeId, intensity: Intensity = 'forte'): void {
   const theme = themeById(id)
   document.documentElement.dataset.theme = theme.id

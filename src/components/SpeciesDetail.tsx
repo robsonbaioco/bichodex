@@ -1,3 +1,8 @@
+// Ficha completa de uma espécie, aberta por cima da lista (rota #/especie/<id>). Quem monta é o App.tsx, que
+// passa se a espécie já foi avistada e os callbacks de marcar, compartilhar (ShareAchievement) e colorir
+// (Coloring). Busca os detalhes no iNaturalist via fetchTaxon (api.ts); não guarda nada por conta própria.
+// Também exporta o campo de data do avistamento (SeenAtField), reaproveitado no cartão de conquista.
+
 import { useEffect, useState, type CSSProperties } from 'react'
 import { fetchTaxon, type Photo, type SpeciesCount, type Taxon, type TaxonDetail } from '../api'
 import { categoryOf } from '../categories'
@@ -13,6 +18,7 @@ import {
   type SeenWhere,
 } from '../format'
 
+/** Níveis taxonômicos mostrados em "Classificação", com o nome em português; os demais são ignorados. */
 const RANKS: Record<string, string> = {
   kingdom: 'Reino',
   phylum: 'Filo',
@@ -24,7 +30,8 @@ const RANKS: Record<string, string> = {
 
 /**
  * Dia e horário em que a pessoa viu a espécie. Já vem com o momento da marcação, mas dá para voltar no
- * tempo e registrar um bicho visto antes (não aceita datas futuras).
+ * tempo e registrar um bicho visto antes (não aceita datas futuras). `value`/`onChange` usam o formato do
+ * input datetime-local (AAAA-MM-DDTHH:MM, horário local); quem guarda o valor é o App.
  */
 export function SeenAtField({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
   return (
@@ -41,10 +48,13 @@ export function SeenAtField({ value, onChange }: { value?: string; onChange: (va
 }
 
 interface Props {
+  /** ID do táxon no iNaturalist. */
   id: number
   /** Entrada da lista regional, quando a espécie já foi carregada nela. */
   entry?: SpeciesCount
+  /** Posição no ranking regional (vira o "Nº 001" do cabeçalho); ausente fora da região. */
   number?: number
+  /** Maior contagem de registros da lista regional, usada como 100% da barrinha de frequência. */
   maxCount: number
   seen: boolean
   /** Onde foi o avistamento, quando a espécie já está marcada. */
@@ -60,6 +70,11 @@ interface Props {
   onClose: () => void
 }
 
+/**
+ * Ficha da espécie em folha modal: fotos (até 6, com miniaturas), botões de avistamento, raridade, risco,
+ * resumo da Wikipédia e classificação. Mostra já o que veio na lista (`entry`) e completa quando chega o
+ * fetchTaxon. Fecha com Esc, com o ✕ ou tocando fora.
+ */
 export function SpeciesDetail({
   id,
   entry,
@@ -78,6 +93,7 @@ export function SpeciesDetail({
   const [failed, setFailed] = useState(false)
   const [photoIndex, setPhotoIndex] = useState(0)
 
+  // Busca os detalhes (fotos, Wikipédia, conservação, ancestrais) a cada troca de espécie; cancela a anterior.
   useEffect(() => {
     const controller = new AbortController()
     setDetail(null)
@@ -91,6 +107,7 @@ export function SpeciesDetail({
     return () => controller.abort()
   }, [id])
 
+  // Esc fecha a ficha. As telas abertas por cima (cartão, colorir) escutam na fase de captura e param o evento.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -99,6 +116,7 @@ export function SpeciesDetail({
 
   const taxon = detail ?? entry?.taxon
   const category = taxon ? categoryOf(taxon) : null
+  // galeria do iNaturalist quando os detalhes chegam; antes disso (ou se falhar), só a foto de capa
   const photos: Photo[] = detail?.taxon_photos?.length
     ? detail.taxon_photos.slice(0, 6).map((p) => p.photo)
     : taxon?.default_photo
@@ -207,6 +225,7 @@ export function SpeciesDetail({
                     <dt>Na sua região</dt>
                     <dd>
                       {frequencyLabel(entry.count)} · {formatNumber(entry.count)} registros
+                      {/* escala logarítmica: senão só as campeãs de registros apareceriam; mínimo de 4% para a barra não sumir */}
                       <span className="meter" aria-hidden="true">
                         <span
                           style={{

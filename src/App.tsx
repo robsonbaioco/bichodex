@@ -1,3 +1,8 @@
+// Componente raiz e dono do estado do app: local e raio, filtros, lista de espécies da área, dex (avistadas,
+// onde e quando), progresso das missões, trilha e tema. Busca as espécies via api.ts, grava o estado no
+// localStorage via storage.ts e distribui tudo para as abas (Explorar, Mapa, Minha dex, Missões, Jogos)
+// e para as camadas por cima (ficha, compartilhar, colorir, baralho, trilha, temas, trocar local).
+// A navegação é por hash: #/<aba>, #/jogos/<id> e #/especie/<id> (ficha).
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   PER_PAGE,
@@ -40,8 +45,10 @@ import {
 // o mapa traz uma biblioteca grande: só é baixado quando a aba é aberta
 const MapView = lazy(() => import('./components/MapView'))
 
+/** Abas da barra inferior; o id é também o trecho do endereço (#/explorar...). */
 type View = 'explorar' | 'mapa' | 'dex' | 'missoes' | 'jogos'
 
+/** Abas na ordem em que aparecem na barra de navegação. */
 const TABS: { id: View; label: string; emoji: string }[] = [
   { id: 'explorar', label: 'Explorar', emoji: '🔎' },
   { id: 'mapa', label: 'Mapa', emoji: '🗺️' },
@@ -50,7 +57,10 @@ const TABS: { id: View; label: string; emoji: string }[] = [
   { id: 'jogos', label: 'Jogos', emoji: '🎮' },
 ]
 
-/** Aba indicada pelo endereço; nulo quando o endereço é o de uma ficha, que abre por cima da aba atual. */
+/**
+ * Aba indicada pelo endereço; nulo quando o endereço é o de uma ficha (ou qualquer outro não reconhecido),
+ * caso em que a aba atual não muda e a ficha abre por cima dela.
+ */
 function viewFromHash(): View | null {
   if (location.hash.length <= 1) return 'explorar'
   // #/jogos/<id> abre direto um jogo (link compartilhado).
@@ -62,6 +72,10 @@ function viewFromHash(): View | null {
 const MIN_RADIUS = 1
 const MAX_RADIUS = 100
 
+/**
+ * Lista de espécies da área carregada até agora. `total` é o que o iNaturalist diz existir; `page`, a última
+ * página baixada. Status: carregando a 1ª página, pronta, erro na 1ª, carregando mais, erro ao carregar mais.
+ */
 interface ListState {
   items: SpeciesCount[]
   total: number
@@ -69,34 +83,48 @@ interface ListState {
   status: 'loading' | 'done' | 'error' | 'more' | 'moreError'
 }
 
+/** Lista vazia à espera da primeira página (usada ao mudar qualquer filtro). */
 const EMPTY_LIST: ListState = { items: [], total: 0, page: 0, status: 'loading' }
 
+/** Id da espécie da ficha aberta, lido de #/especie/<id>; nulo se o endereço não for de ficha. */
 function selectedFromHash(): number | null {
   const match = location.hash.match(/^#\/especie\/(\d+)$/)
   return match ? Number(match[1]) : null
 }
 
+/**
+ * Texto sem acentos e em minúsculas, para a busca por nome ignorar acentuação ("sabia" acha "Sabiá").
+ * A classe do replace contém os caracteres de acento combinantes U+0300 a U+036F, escritos literalmente.
+ */
 const normalize = (text: string) =>
   text
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
 
+/** Faixa de registros de uma raridade por extenso, para a linha de resumo ("5 a 24 registros"). */
 function rarityRange(rarity: Rarity): string {
   if (rarity.max === Infinity) return `${rarity.min} registros ou mais`
   if (rarity.min <= 1) return `até ${rarity.max} registros`
   return `${rarity.min} a ${rarity.max} registros`
 }
 
+/** Ícone do app (decorativo: o nome vem ao lado). */
 function Logo() {
   return <img className="logo" src="./icon.svg" alt="" width="36" height="36" />
 }
 
+/**
+ * App inteiro. Sem local escolhido mostra só a tela de boas-vindas; com local, o cabeçalho, a aba ativa e
+ * a barra de abas. Estados marcados como persistidos são gravados no localStorage a cada mudança.
+ */
 export default function App() {
+  // persistidos: place, radius, seen, zoo, seenAt, progress, trail (tema e letra são gravados por themes.ts)
   const [place, setPlace] = useState<Place | null>(() => load('place', null))
   const [radius, setRadius] = useState<number>(() => load('radius', 10))
   /** Valor do controle de raio enquanto é arrastado; só vira `radius` (e refaz as buscas) após uma pausa. */
   const [radiusDraft, setRadiusDraft] = useState(radius)
+  /** Ids das espécies avistadas, na ordem da marcação (a posição + 1 é o "nº da sua dex"). */
   const [seen, setSeen] = useState<number[]>(() => load('seen', []))
   /** Entre as avistadas, as que foram vistas no zoológico (as demais, na natureza). */
   const [zooIds, setZooIds] = useState<number[]>(() => load('zoo', []))
@@ -104,14 +132,21 @@ export default function App() {
   const [seenAt, setSeenAt] = useState<Record<number, string>>(() => load('seenAt', {}))
   /** Grupo de uma data comemorativa usado como filtro, no lugar de uma categoria fixa. */
   const [special, setSpecial] = useState<Category | null>(null)
+  /** Resultados da busca por nome no catálogo mundial (para a seção "Fora da sua região"). */
   const [worldResults, setWorldResults] = useState<Taxon[]>([])
   const [categoryId, setCategoryId] = useState('all')
+  /** Termo do campo "Filtrar por nome" (compartilhado entre Explorar e Mapa). */
   const [query, setQuery] = useState('')
+  /** Painel "Trocar local" aberto. */
   const [changingPlace, setChangingPlace] = useState(false)
   const [list, setList] = useState<ListState>(EMPTY_LIST)
+  /** Quantidade de espécies por grupo icônico na área, mostrada nas categorias. */
   const [counts, setCounts] = useState<Record<string, number>>({})
+  /** Espécie da ficha aberta; acompanha o hash #/especie/<id>. */
   const [selectedId, setSelectedId] = useState(selectedFromHash)
+  /** Aumentar refaz a busca da lista (botão "Tentar de novo"). */
   const [reloadKey, setReloadKey] = useState(0)
+  /** Espécie aberta no cartão de conquista (compartilhar avistamento). */
   const [sharing, setSharing] = useState<Taxon | null>(null)
   /** Espécie aberta na página de colorir. */
   const [coloring, setColoring] = useState<Taxon | null>(null)
@@ -119,23 +154,32 @@ export default function App() {
   const [threatened, setThreatened] = useState(false)
   /** Páginas grandes, ligadas na primeira busca por nome, que percorre o catálogo inteiro da área. */
   const [bulk, setBulk] = useState(false)
+  /** Registros da espécie mais registrada da área: escala do medidor de frequência da ficha. */
   const [topCount, setTopCount] = useState(1)
   const [theme, setTheme] = useState<ThemeId>(loadTheme)
   const [pickingTheme, setPickingTheme] = useState(false)
   const [intensity, setIntensity] = useState<Intensity>(loadIntensity)
   const [textSize, setTextSize] = useState<TextSize>(loadTextSize)
   const [view, setView] = useState<View>(() => viewFromHash() ?? 'explorar')
+  /** Progresso das missões e conquistas (missions.ts). */
   const [progress, setProgress] = useState(loadProgress)
+  /** Baralho de espécies não vistas ("já viu este?") aberto. */
   const [deckOpen, setDeckOpen] = useState(false)
+  /** Trilha em andamento (sobrevive a recarregar a página); nula quando não há trilha. */
   const [trail, setTrail] = useState<TrailState | null>(() => load('trail', null))
+  /** Tela da trilha aberta; minimizada, vira um botão flutuante. */
   const [trailOpen, setTrailOpen] = useState(false)
   /** Último avistamento feito fora da ficha, mostrado num aviso rápido que não interrompe a navegação. */
   const [justSeen, setJustSeen] = useState<{ taxon: Taxon; ordinal: number } | null>(null)
 
+  /** Número da busca da lista em vigor; respostas de buscas antigas (filtros já trocados) são descartadas. */
   const request = useRef(0)
+  /** Se a ficha aberta foi aberta de dentro do app (aí fechar volta no histórico) ou veio de um link. */
   const openedHere = useRef(false)
+  /** Elemento no fim da lista que dispara a rolagem infinita ao aparecer. */
   const sentinel = useRef<HTMLDivElement>(null)
 
+  // a data comemorativa, quando escolhida, tem prioridade sobre a categoria da barra
   const category: Category = special ?? CATEGORIES.find((c) => c.id === categoryId) ?? CATEGORIES[0]
   const seenSet = useMemo(() => new Set(seen), [seen])
 
@@ -153,6 +197,7 @@ export default function App() {
 
   useEffect(() => save('place', place), [place])
   useEffect(() => save('radius', radius), [radius])
+  // espera 400 ms sem mexer no controle de raio antes de aplicar, para não disparar uma busca por passo
   useEffect(() => {
     const timer = setTimeout(() => setRadius(radiusDraft), 400)
     return () => clearTimeout(timer)
@@ -164,10 +209,12 @@ export default function App() {
   useEffect(() => applyTextSize(textSize), [textSize])
   useEffect(() => save('progress', progress), [progress])
   useEffect(() => save('trail', trail), [trail])
+  // abrir uma ficha conta para as missões do dia (fichas abertas hoje)
   useEffect(() => {
     if (selectedId != null) setProgress((current) => withOpened(current, selectedId))
   }, [selectedId])
 
+  // Navegação: o hash manda na aba e na ficha (os botões voltar/avançar do navegador funcionam).
   useEffect(() => {
     const onHashChange = () => {
       setSelectedId(selectedFromHash())
@@ -181,6 +228,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
+  // Contagem de espécies por categoria; refeita ao mudar local, raio ou o filtro de ameaça.
   useEffect(() => {
     if (!place) return
     const controller = new AbortController()
@@ -191,6 +239,7 @@ export default function App() {
     return () => controller.abort()
   }, [place, radius, threatened])
 
+  // Primeira página da lista: qualquer mudança de local, raio, categoria ou filtro recomeça do zero.
   useEffect(() => {
     if (!place) return
     const controller = new AbortController()
@@ -220,6 +269,11 @@ export default function App() {
     !!rarity && lastCount != null && (order === 'asc' ? lastCount > rarity.max : lastCount < rarity.min)
   const hasMore = list.items.length < list.total && !pastRarity
 
+  /**
+   * Baixa a próxima página da lista e junta às já carregadas (sem repetir espécies). Não faz nada se não
+   * houver mais páginas ou se já houver uma busca em curso. Não usa AbortController: se os filtros mudarem
+   * no meio, a resposta é descartada pela comparação com `request`.
+   */
   const loadMore = useCallback(() => {
     if (!place || !hasMore || (list.status !== 'done' && list.status !== 'moreError')) return
     const id = request.current
@@ -246,7 +300,9 @@ export default function App() {
 
   // A busca por nome vale para todas as espécies da área, não só as já carregadas: com um termo digitado
   // (e uma pausa na digitação), as páginas restantes são baixadas em sequência, sem depender da rolagem.
+  /** Busca por nome ativa: as páginas restantes vão sendo baixadas sozinhas. */
   const [searchAll, setSearchAll] = useState(false)
+  // `bulk` não volta a falso quando o termo é apagado: as páginas seguem grandes até recarregar o app
   useEffect(() => {
     if (!query.trim()) return setSearchAll(false)
     const timer = setTimeout(() => {
@@ -274,6 +330,7 @@ export default function App() {
     }
   }, [query])
 
+  // Com a busca por nome ativa, cada página que termina de chegar puxa a seguinte (só na aba Explorar).
   useEffect(() => {
     if (view === 'explorar' && searchAll && hasMore && list.status === 'done') loadMore()
   }, [view, searchAll, hasMore, list.status, loadMore])
@@ -289,6 +346,8 @@ export default function App() {
     return () => observer.disconnect()
   }, [filtering, list.status, hasMore, loadMore, view])
 
+  // O que aparece na grade: a lista carregada, com o número do ranking, filtrada por raridade e pelo nome
+  // (popular ou científico). A raridade é filtrada aqui porque a API não tem filtro por quantidade de registros.
   const visible = useMemo(() => {
     const term = normalize(query.trim())
     return list.items
@@ -300,6 +359,7 @@ export default function App() {
       )
   }, [list.items, query, rarity, numberAt])
 
+  /** Grava onde a espécie foi vista: entra na lista `zoo` ou sai dela (natureza é o padrão). */
   function setWhere(id: number, where: SeenWhere) {
     setZooIds((current) => {
       const others = current.filter((x) => x !== id)
@@ -311,6 +371,10 @@ export default function App() {
   // compartilhar, para dar para marcar várias espécies em sequência sem nada abrir por cima.
   // Na ficha o cartão de conquista continua abrindo; o baralho e a trilha têm fluxo próprio, sem aviso.
   // Desmarcar apenas remove.
+  /**
+   * Marca ou desmarca uma espécie como avistada, atualizando juntos `seen`, `zoo`, `seenAt` e o progresso
+   * das missões. `where` só vale ao marcar; `feedback` escolhe entre aviso rápido, cartão de conquista ou nada.
+   */
   function toggleSeen(taxon: Taxon, where: SeenWhere = 'wild', feedback: 'toast' | 'card' | 'none' = 'toast') {
     if (seenSet.has(taxon.id)) {
       setSeen((current) => current.filter((id) => id !== taxon.id))
@@ -323,28 +387,35 @@ export default function App() {
       setWhere(taxon.id, where)
       setSeenAt((current) => ({ ...current, [taxon.id]: localDateTime(new Date()) }))
       setProgress((current) => withSighting(current, taxon))
+      // o cartão de conquista precisa do nome do local; sem local (ficha aberta por link na boas-vindas) cai no aviso
       if (feedback === 'card' && place) setSharing(taxon)
       else if (feedback !== 'none') setJustSeen({ taxon, ordinal: seen.length + 1 })
     }
   }
 
+  // o aviso de avistamento some sozinho depois de 6 s
   useEffect(() => {
     if (!justSeen) return
     const timer = setTimeout(() => setJustSeen(null), 6000)
     return () => clearTimeout(timer)
   }, [justSeen])
 
+  /** Muda a data e hora do avistamento; valor vazio (campo apagado) é ignorado para não perder a data. */
   const changeSeenAt = useCallback((id: number, value: string) => {
     if (value) setSeenAt((current) => ({ ...current, [id]: value }))
   }, [])
 
+  /** Abre a trilha; se não houver uma em andamento, começa agora no local atual. */
   function startTrail() {
     if (!place) return
     if (!trail) setTrail({ start: Date.now(), place: place.label, found: [] })
     setTrailOpen(true)
   }
 
-  // Na trilha, tocar numa espécie a inclui (ou tira) do resumo; se ainda não estava na dex, entra também.
+  /**
+   * Na trilha, tocar numa espécie a inclui (ou tira) do resumo; se ainda não estava na dex, entra também.
+   * Tirar da trilha não tira da dex.
+   */
   function toggleTrail(taxon: Taxon) {
     setTrail((current) => {
       if (!current) return current
@@ -356,11 +427,13 @@ export default function App() {
     if (!seenSet.has(taxon.id)) toggleSeen(taxon, 'wild', 'none')
   }
 
+  /** Abre a ficha de uma espécie mudando o hash (o efeito de hashchange faz o resto). */
   function openSpecies(id: number) {
     openedHere.current = true
     location.hash = `#/especie/${id}`
   }
 
+  /** Filtra a lista pelo grupo de uma data comemorativa (vindo dos destaques), como uma categoria temporária. */
   function exploreGroup(day: SpecialDay) {
     setSpecial({ id: 'special', label: day.group, emoji: day.emoji, color: 'var(--brand)', taxonId: day.taxonId })
     setQuery('')
@@ -370,6 +443,10 @@ export default function App() {
   const closeColoring = useCallback(() => setColoring(null), [])
   const coloringSheet = coloring && <Coloring taxon={coloring} onClose={closeColoring} />
 
+  /**
+   * Fecha a ficha. Aberta de dentro do app, volta no histórico (o voltar do celular também fecha);
+   * aberta por link, não há para onde voltar, então só limpa o hash sem criar entrada no histórico.
+   */
   const closeDetail = useCallback(() => {
     if (openedHere.current) {
       openedHere.current = false
@@ -380,6 +457,7 @@ export default function App() {
     }
   }, [])
 
+  /** Troca o local (o efeito de place grava e as buscas recomeçam) e fecha o painel de troca. */
   function pickPlace(next: Place) {
     setPlace(next)
     setChangingPlace(false)
@@ -393,6 +471,7 @@ export default function App() {
     return worldResults.filter((taxon) => !regional.has(taxon.id))
   }, [worldResults, list.items, list.status, hasMore])
 
+  // posição da espécie da ficha na lista carregada; -1 se ela não estiver lá (a ficha busca os dados sozinha)
   const selectedIndex = selectedId == null ? -1 : list.items.findIndex((item) => item.taxon.id === selectedId)
 
   // Fora do retorno principal porque um link de espécie compartilhado abre a ficha mesmo antes de haver local.
@@ -425,11 +504,13 @@ export default function App() {
     />
   )
 
+  // espécies da lista ainda não vistas: as cartas do baralho
   const unseenRegional = useMemo(
     () => list.items.filter((entry) => !seenSet.has(entry.taxon.id)),
     [list.items, seenSet],
   )
 
+  // Sem local: tela de boas-vindas (escolher local, mudar tema, importar dados de outro aparelho).
   if (!place) {
     return (
       <>
@@ -557,6 +638,7 @@ export default function App() {
             </button>
           )}
           {CATEGORIES.map((c) => {
+            // na categoria ativa o total da lista é o mais exato; nas outras, a contagem por grupo icônico
             const count = c.id === category.id && list.page > 0 ? list.total : c.iconic ? counts[c.iconic] : undefined
             return (
               <button

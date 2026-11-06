@@ -1,5 +1,15 @@
 // Nomes populares em português para clados que aparecem como ancestral comum.
 // Clados sem tradução são exibidos só com o nome científico.
+// Usado por build-parentes.mjs, que grava o resultado em `cladePt` de cada resposta no parentes/data.js.
+//
+// Formato de cada entrada: 'Nome científico do clado': 'nome em português, em minúsculas'.
+// - A chave precisa ser exatamente o nome que o Open Tree of Life devolve no MRCA (veja o nome
+//   entre parênteses que o build-parentes.mjs mostra no console, ex.: "Hipopótamo (Whippomorpha, <nº de espécies>)").
+//   Nomes com espaço ou caracteres especiais vão entre aspas ('cellular organisms').
+// - Quando o build mostrar um clado sem tradução, acrescente-o aqui e rode o build de novo (as chamadas
+//   já estão no cache, então é rápido). Não há ordem obrigatória; novas entradas podem ir no fim.
+
+/** Nome científico do clado → nome popular em português. */
 const PT = {
   'cellular organisms': 'todos os seres vivos com células',
   Eukaryota: 'eucariontes',
@@ -134,6 +144,7 @@ const PT = {
   Pholidota: 'pangolins',
 };
 
+/** Nome em português do clado, ou null se não houver tradução (o jogo mostra só o nome científico). */
 export function cladePt(name) {
   return PT[name] || null;
 }

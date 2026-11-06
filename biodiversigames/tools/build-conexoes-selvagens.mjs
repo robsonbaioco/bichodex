@@ -1,10 +1,15 @@
 // Gera conexoes-selvagens/data.js a partir de tools/puzzles/conexoes-selvagens.mjs.
 // Fontes: GBIF (checagem taxonômica dos grupos) e iNaturalist (fotos).
 // Uso: node tools/build-conexoes-selvagens.mjs
+// Valida cada puzzle (4 grupos, níveis 0–3, 16 nomes diferentes, 4 itens por grupo e o `check` no GBIF),
+// junta as fotos e só grava o data.js se não houver nenhum problema. Chamadas de rede passam pelo
+// cache de lib.mjs. Não confere se a solução é única: isso fica por conta de quem escreve o puzzle.
 import puzzles from './puzzles/conexoes-selvagens.mjs';
 import { gbifMatch, inatTaxon, writeDataJs } from './lib.mjs';
 
+// Os problemas são acumulados (em vez de parar no primeiro) para mostrar todos de uma vez.
 let errors = 0;
+/** Registra um problema de validação e mostra no console. */
 const fail = (msg) => {
   errors++;
   console.error('  ✖ ' + msg);
@@ -25,6 +30,7 @@ for (const [i, p] of puzzles.entries()) {
     const items = [];
     for (const [name, sci] of g.items) {
       if (g.check) {
+        // check = [nível, nome], ex.: ['family', 'Felidae']; o nível é um campo do match do GBIF.
         const [rank, value] = g.check;
         const m = await gbifMatch(sci);
         if (m[rank] !== value) fail(`${name} (${sci}): ${rank} no GBIF é "${m[rank]}", esperado "${value}"`);
@@ -34,6 +40,7 @@ for (const [i, p] of puzzles.entries()) {
     }
     groups.push({ level: g.level, label: g.label, items });
   }
+  // No data.js os grupos ficam do mais fácil ao mais difícil, qualquer que seja a ordem no puzzle.
   groups.sort((a, b) => a.level - b.level);
   out.push({ groups });
 }

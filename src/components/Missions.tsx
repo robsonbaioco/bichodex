@@ -1,10 +1,17 @@
+// Aba "Missões": só exibe. Recebe do App.tsx o progresso do dia (missions.ts), a categoria do dia
+// e o total de avistadas, e calcula na hora as missões e as medalhas. Também tem os atalhos para o
+// baralho de descobertas e o modo trilha, que são abertos pelo App.
+
 import type { Category } from '../categories'
 import { medalsFor, questsFor, type Progress } from '../missions'
 
 interface Props {
   progress: Progress
+  /** Categoria da missão do dia (dailyCategory). */
   category: Category
+  /** Total de espécies avistadas, para as medalhas. */
   seenCount: number
+  /** Há uma trilha em andamento: o botão vira "Voltar à trilha". */
   trailActive: boolean
   /** Falso enquanto a lista da região não carregou: baralho e trilha dependem dela. */
   ready: boolean

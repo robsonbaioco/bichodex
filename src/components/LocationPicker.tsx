@@ -1,15 +1,20 @@
+// Escolha do local: pela geolocalização do navegador (com o nome achado pela BigDataCloud) ou buscando uma
+// cidade no Open-Meteo. Usado pelo App na tela de boas-vindas e no painel "Trocar local"; entrega o Place
+// por `onPick`, e quem guarda (localStorage `bichodex:place`) é o App.
 import { useState, type FormEvent } from 'react'
 import { reverseGeocode, searchPlaces, type Place } from '../api'
 
 // ~1 km de precisão: suficiente para a busca por raio e evita enviar a posição exata às APIs.
 const round = (n: number) => Math.round(n * 100) / 100
 
+/** Mensagens pelos códigos de GeolocationPositionError (1 = negada, 2 = indisponível, 3 = tempo esgotado). */
 const GEO_ERRORS: Record<number, string> = {
   1: 'Permissão de localização negada. Libere o acesso no navegador ou busque uma cidade abaixo.',
   2: 'Não foi possível determinar sua localização. Tente de novo ou busque uma cidade.',
   3: 'A localização demorou demais para responder. Tente de novo ou busque uma cidade.',
 }
 
+/** Botão "Usar minha localização" e busca de cidade; chama `onPick` com o lugar escolhido, já arredondado. */
 export function LocationPicker({ onPick }: { onPick: (place: Place) => void }) {
   const [locating, setLocating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,6 +22,7 @@ export function LocationPicker({ onPick }: { onPick: (place: Place) => void }) {
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState<Place[] | null>(null)
 
+  /** Pede a posição ao navegador (abre o pedido de permissão) e dá nome a ela; sem nome, usa as coordenadas. */
   function locate() {
     if (!navigator.geolocation) {
       setError('Este navegador não oferece localização. Busque uma cidade abaixo.')
@@ -28,6 +34,7 @@ export function LocationPicker({ onPick }: { onPick: (place: Place) => void }) {
       async (position) => {
         const lat = round(position.coords.latitude)
         const lng = round(position.coords.longitude)
+        // não volta `locating` para falso: ao escolher o local, o App desmonta este componente
         const label = await reverseGeocode(lat, lng).catch(() => null)
         onPick({ lat, lng, label: label ?? `${lat.toFixed(2)}, ${lng.toFixed(2)}` })
       },
@@ -35,10 +42,11 @@ export function LocationPicker({ onPick }: { onPick: (place: Place) => void }) {
         setLocating(false)
         setError(GEO_ERRORS[geoError.code] ?? GEO_ERRORS[2])
       },
-      { timeout: 15000, maximumAge: 5 * 60 * 1000 },
+      { timeout: 15000, maximumAge: 5 * 60 * 1000 }, // aceita uma posição de até 5 min atrás, que responde mais rápido
     )
   }
 
+  /** Envio do formulário: busca cidades com o termo digitado (mínimo de 2 letras) e mostra a lista. */
   async function search(event: FormEvent) {
     event.preventDefault()
     const term = query.trim()
